@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>FieldKit — Field Technical Calculators</title>
+    <meta
+      name="description"
+      content="Offline-first field calculators for electrical, network, HVAC and RF work. Install once and keep every tool in your pocket."
+    />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#080c12" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="FieldKit" />
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script>
+      // Apply a saved light preference before first paint; dark is the default.
+      try {
+        const saved = JSON.parse(localStorage.getItem('fieldkit.state.v1'));
+        if (saved && saved.theme === 'light') {
+          document.documentElement.dataset.theme = 'light';
+        }
+      } catch (error) {
+        /* Storage can be unavailable in private modes — stay on the default. */
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#view">Skip to content</a>
+
+    <header class="app-bar">
+      <div class="app-bar-inner">
+        <a class="brand" href="#/" aria-label="FieldKit home">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 48 48" role="img">
+              <rect width="48" height="48" rx="13" fill="currentColor" />
+              <path
+                d="M27.4 7 13.5 27h8.2l-1.6 14L34.5 21h-8.1l1-14Z"
+                fill="#0a0f16"
+              />
+            </svg>
+          </span>
+          <span class="brand-text">
+            <span class="brand-name">FieldKit</span>
+            <span class="brand-sub">Field technical calculators</span>
+          </span>
+        </a>
+
+        <div class="app-bar-actions">
+          <button
+            class="icon-btn"
+            id="install-btn"
+            type="button"
+            aria-label="Install FieldKit"
+            hidden
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3v12" />
+              <path d="m7.5 10.5 4.5 4.5 4.5-4.5" />
+              <path d="M4 17v2.5A1.5 1.5 0 0 0 5.5 21h13a1.5 1.5 0 0 0 1.5-1.5V17" />
+            </svg>
+          </button>
+          <button
+            class="icon-btn"
+            id="theme-btn"
+            type="button"
+            aria-label="Switch to light theme"
+          >
+            <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <circle cx="12" cy="12" r="4.2" />
+              <path d="M12 2.5v2.2M12 19.3v2.2M21.5 12h-2.2M4.7 12H2.5M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6M18.7 18.7l-1.6-1.6M6.9 6.9 5.3 5.3" />
+            </svg>
+            <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.5 14.3A8.5 8.5 0 0 1 9.7 3.5a8.5 8.5 0 1 0 10.8 10.8Z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main id="view" tabindex="-1"></main>
+
+    <footer class="app-footer">
+      <span>FieldKit v1.0</span>
+      <span class="footer-dot" aria-hidden="true"></span>
+      <span>Works offline · no accounts · no tracking</span>
+    </footer>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <noscript>
+      <div class="noscript">
+        FieldKit needs JavaScript for its calculators. Everything runs locally on your
+        device.
+      </div>
+    </noscript>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

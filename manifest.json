@@ -1,0 +1,59 @@
+{
+  "id": "./",
+  "name": "FieldKit — Field Technical Calculators",
+  "short_name": "FieldKit",
+  "description": "Offline-first calculators for electrical, network, HVAC and RF field work.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#070b10",
+  "theme_color": "#070b10",
+  "categories": ["utilities", "productivity", "education"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Voltage Drop",
+      "short_name": "Voltage Drop",
+      "description": "Check conductor voltage drop",
+      "url": "./index.html#/calc/voltage-drop",
+      "icons": [{ "src": "./icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "IPv4 Subnet",
+      "short_name": "Subnet",
+      "description": "Work out network and host ranges",
+      "url": "./index.html#/calc/subnet",
+      "icons": [{ "src": "./icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "RF Link Budget",
+      "short_name": "RF Link",
+      "description": "Free-space path loss and margin",
+      "url": "./index.html#/calc/rf-link",
+      "icons": [{ "src": "./icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
