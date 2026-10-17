@@ -1,9 +1,9 @@
 {
   "name": "fieldkit",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
-  "description": "Offline-first field technical calculators — vanilla HTML, CSS and JavaScript.",
+  "description": "Offline-first wastewater and septic calculators — vanilla HTML, CSS and JavaScript.",
   "scripts": {
     "start": "python3 -m http.server 3000 --bind 0.0.0.0",
     "serve": "python3 -m http.server 3000 --bind 0.0.0.0",

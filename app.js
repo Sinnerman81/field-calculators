@@ -3,14 +3,14 @@ import { formatNumber, outputValue } from './modules/format.js';
 import { buildSummaryMarkdown } from './modules/summary.js';
 
 const APP_NAME = 'FieldKit';
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '2.0.0';
 const STORAGE_KEY = 'fieldkit.state.v1';
 
 /* -------------------------------------------------------------------------- */
 /* State                                                                       */
 /* -------------------------------------------------------------------------- */
 
-const defaultState = () => ({ theme: 'dark', favorites: [], values: {} });
+const defaultState = () => ({ theme: 'dark', favorites: [], modes: {}, values: {} });
 
 function loadState() {
   try {
@@ -22,6 +22,10 @@ function loadState() {
       favorites: Array.isArray(parsed.favorites)
         ? parsed.favorites.filter((id) => typeof id === 'string')
         : [],
+      modes:
+        parsed.modes && typeof parsed.modes === 'object' && !Array.isArray(parsed.modes)
+          ? parsed.modes
+          : {},
       values:
         parsed.values && typeof parsed.values === 'object' && !Array.isArray(parsed.values)
           ? parsed.values
@@ -34,7 +38,7 @@ function loadState() {
 
 const state = loadState();
 const ui = { query: '', category: 'All' };
-const activeCalc = { module: null, values: null, raw: null, result: null };
+const activeCalc = { module: null, mode: null, values: null, raw: null, result: null };
 let currentRouteKey = null;
 let persistTimer = 0;
 
@@ -79,6 +83,10 @@ const ICONS = {
   thermometer: '<path d="M10 4.5a2.5 2.5 0 0 1 5 0v9.1a4.5 4.5 0 1 1-5 0V4.5Z"/><path d="M12.5 9v6.5"/><path d="M18.5 6h2M18.5 10h2M18.5 14h2"/>',
   antenna: '<path d="m8 21 4-18 4 18"/><path d="M9.2 15.2h5.6"/><path d="M5.5 6.5a9 9 0 0 0 0 11M18.5 6.5a9 9 0 0 1 0 11"/>',
   wrench: '<path d="M14.7 6.3a4.4 4.4 0 0 0 5.5 5.5l-8.9 8.9a2.6 2.6 0 0 1-3.7-3.7l8.9-8.9a4.4 4.4 0 0 0-1.8-1.8Z"/>',
+  flow: '<path d="M3 7h9.5a3 3 0 1 0-3-3"/><path d="M3 12h14a3 3 0 1 1-3 3"/><path d="M3 17h7"/>',
+  tank: '<rect x="4" y="7" width="16" height="13" rx="2"/><path d="M4 12h16"/><path d="M8 4v3M16 4v3"/><path d="M9 16.5h6"/>',
+  grid: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 16h18M9 4v16M15 4v16"/>',
+  drip: '<path d="M12 3s5 5.1 5 8.7a5 5 0 0 1-10 0C7 8.1 12 3 12 3Z"/><path d="M4 20h5M15 20h5"/><circle cx="12" cy="20" r="1"/>',
   search: '<circle cx="10.8" cy="10.8" r="6.6"/><path d="m16 16 4.5 4.5"/>',
   copy: '<rect x="9" y="9" width="11" height="12" rx="2"/><path d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"/>',
   arrowLeft: '<path d="M19 12H5"/><path d="m11 6-6 6 6 6"/>',
@@ -198,13 +206,14 @@ function renderHome() {
   view.innerHTML = `
     <section class="home" aria-labelledby="home-title">
       <div class="home-intro">
-        <p class="eyebrow">Field-ready toolkit</p>
+        <p class="eyebrow">Wastewater field toolkit</p>
         <h1 class="home-title" id="home-title" tabindex="-1">
           Calculators that work
           <span class="accent">without a signal.</span>
         </h1>
         <p class="home-lede">
-          Eleven practical tools for electrical, network, HVAC and RF work.
+          Four dedicated tools for septic and wastewater work: hydraulic load testing,
+          tank volume, pressure distribution, and subsurface drip / OSCAR dosing.
           Install once — everything stays on your device and available offline.
         </p>
       </div>
@@ -266,7 +275,8 @@ function renderHome() {
       </div>
 
       <p class="home-foot">
-        Every calculation runs locally. No accounts, no tracking, no network calls.
+        Built for septic and wastewater field work. Every calculation runs locally — no
+        accounts, no tracking, no network calls.
       </p>
     </section>
   `;
@@ -336,9 +346,35 @@ function fieldMarkup(field, savedValue) {
   const initial = savedValue !== undefined ? savedValue : field.default ?? '';
   const hintId = field.hint ? `${id}-hint` : '';
   const describedBy = hintId ? `aria-describedby="${hintId}"` : '';
-  const label = `<label class="field-label" for="${id}">${esc(field.label)}</label>`;
   const hint = field.hint ? `<p class="field-hint" id="${hintId}">${esc(field.hint)}</p>` : '';
   const wide = field.span === 2 ? ' field--wide' : '';
+  const modeAttr = field.mode ? ` data-field-mode="${esc(field.mode)}"` : '';
+  const wrapAttrs = `data-field-wrap="${esc(field.id)}"${modeAttr}`;
+  const label = `<label class="field-label" for="${id}">${esc(field.label)}</label>`;
+
+  if (field.type === 'segmented') {
+    const buttons = field.options
+      .map((option) => {
+        const pressed = String(initial) === String(option.value);
+        return `<button
+          type="button"
+          class="segment-btn"
+          data-target="${esc(field.id)}"
+          data-set-value="${esc(option.value)}"
+          aria-pressed="${pressed}"
+        >${esc(option.label)}</button>`;
+      })
+      .join('');
+
+    return `
+      <div class="field${wide}" ${wrapAttrs}>
+        <span class="field-label" id="${id}-label">${esc(field.label)}</span>
+        <input type="hidden" id="${id}" name="${esc(field.id)}" value="${esc(initial)}" />
+        <div class="segmented" role="group" aria-labelledby="${id}-label">${buttons}</div>
+        ${hint}
+      </div>
+    `;
+  }
 
   if (field.type === 'select') {
     const options = field.options
@@ -352,7 +388,7 @@ function fieldMarkup(field, savedValue) {
       : '';
 
     return `
-      <div class="field${wide}">
+      <div class="field${wide}" ${wrapAttrs}>
         ${label}
         <div class="select-wrap">
           <select
@@ -387,13 +423,59 @@ function fieldMarkup(field, savedValue) {
     .filter(Boolean)
     .join(' ');
 
-  return `
-    <div class="field${wide}">
-      ${label}
-      <div class="input-wrap${field.unit ? ' has-unit' : ''}">
-        <input class="input" ${attrs} />
-        ${field.unit ? `<span class="input-unit" aria-hidden="true">${esc(field.unit)}</span>` : ''}
+  const input = `
+    <div class="input-wrap${field.unit ? ' has-unit' : ''}">
+      <input class="input" ${attrs} />
+      ${field.unit ? `<span class="input-unit" aria-hidden="true">${esc(field.unit)}</span>` : ''}
+    </div>
+  `;
+
+  const stepped = field.stepper
+    ? `
+      <div class="stepper-row">
+        <button
+          class="step-btn"
+          type="button"
+          data-target="${esc(field.id)}"
+          data-step="${esc(-field.stepper)}"
+          aria-label="Decrease ${esc(field.label)} by ${esc(field.stepper)}"
+        >−</button>
+        ${input}
+        <button
+          class="step-btn"
+          type="button"
+          data-target="${esc(field.id)}"
+          data-step="${esc(field.stepper)}"
+          aria-label="Increase ${esc(field.label)} by ${esc(field.stepper)}"
+        >+</button>
       </div>
+    `
+    : input;
+
+  const choices = Array.isArray(field.choices)
+    ? `
+      <div class="quick-values" role="group" aria-label="${esc(field.label)} presets">
+        ${field.choices
+          .map((choice) => {
+            const pressed = String(initial) === String(choice.value);
+            return `<button
+              type="button"
+              class="quick-chip"
+              data-target="${esc(field.id)}"
+              data-set-value="${esc(choice.value)}"
+              aria-pressed="${pressed}"
+            >${esc(choice.label)}</button>`;
+          })
+          .join('')}
+      </div>
+    `
+    : '';
+
+  return `
+    <div class="field${wide}" ${wrapAttrs}>
+      ${label}
+      ${stepped}
+      ${choices}
       ${hint}
     </div>
   `;
@@ -402,6 +484,30 @@ function fieldMarkup(field, savedValue) {
 function renderCalculator(module) {
   const { meta } = module;
   const saved = state.values[meta.id] ?? {};
+  const hasModes = Array.isArray(module.modes) && module.modes.length > 0;
+  const storedMode = state.modes[meta.id];
+  let activeMode = hasModes
+    ? module.modes.find((mode) => mode.id === storedMode)?.id ?? module.modes[0].id
+    : null;
+
+  if (hasModes) state.modes[meta.id] = activeMode;
+
+  const modeTabs = hasModes
+    ? `
+      <div class="mode-tabs" role="group" aria-label="Calculation mode">
+        ${module.modes
+          .map(
+            (mode) => `<button
+              class="mode-tab"
+              type="button"
+              data-mode-value="${esc(mode.id)}"
+              aria-pressed="${mode.id === activeMode}"
+            >${esc(mode.label)}</button>`,
+          )
+          .join('')}
+      </div>
+    `
+    : '';
 
   view.innerHTML = `
     <section class="calc" aria-labelledby="calc-title">
@@ -422,6 +528,7 @@ function renderCalculator(module) {
       ${meta.hint ? `<p class="calc-hint">${svgIcon('alert')}${esc(meta.hint)}</p>` : ''}
 
       <form class="calc-form" id="calc-form" novalidate>
+        ${modeTabs}
         <div class="field-grid">
           ${module.fields.map((field) => fieldMarkup(field, saved[field.id])).join('')}
         </div>
@@ -438,9 +545,49 @@ function renderCalculator(module) {
 
   const form = view.querySelector('#calc-form');
   const resetButton = view.querySelector('[data-action="reset-inputs"]');
+  const modeButtons = [...form.querySelectorAll('[data-mode-value]')];
+  const modeFields = [...form.querySelectorAll('[data-field-mode]')];
 
   function inputFor(field) {
     return form.elements.namedItem(field.id);
+  }
+
+  function syncModeFields() {
+    for (const wrapper of modeFields) {
+      wrapper.hidden = wrapper.dataset.fieldMode !== activeMode;
+    }
+    for (const button of modeButtons) {
+      button.setAttribute('aria-pressed', String(button.dataset.modeValue === activeMode));
+    }
+  }
+
+  function syncControlStates() {
+    for (const button of form.querySelectorAll('[data-set-value]')) {
+      const input = inputFor({ id: button.dataset.target });
+      if (!input) continue;
+      button.setAttribute(
+        'aria-pressed',
+        String(String(input.value) === String(button.dataset.setValue)),
+      );
+    }
+
+    for (const button of form.querySelectorAll('[data-step]')) {
+      const field = module.fields.find((item) => item.id === button.dataset.target);
+      const input = field ? inputFor(field) : null;
+      if (!field || !input || input.value === '') {
+        button.disabled = false;
+        continue;
+      }
+      const value = Number(input.value);
+      const step = Number(button.dataset.step);
+      if (!Number.isFinite(value) || !Number.isFinite(step)) {
+        button.disabled = false;
+      } else if (step < 0) {
+        button.disabled = field.min != null && value <= field.min;
+      } else {
+        button.disabled = field.max != null && value >= field.max;
+      }
+    }
   }
 
   function readRawValues() {
@@ -466,21 +613,62 @@ function renderCalculator(module) {
         values[field.id] = value;
       }
     }
+    if (hasModes) values.mode = activeMode;
     return { values, raw };
   }
 
   function update() {
     const { values, raw } = readValues();
     activeCalc.module = module;
+    activeCalc.mode = activeMode;
     activeCalc.values = values;
     activeCalc.raw = raw;
 
     state.values[meta.id] = raw;
+    if (hasModes) state.modes[meta.id] = activeMode;
     persistSoon();
 
+    syncControlStates();
     activeCalc.result = safeCalculate(module, values);
     renderResult(activeCalc.result, module);
   }
+
+  form.addEventListener('click', (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) return;
+
+    const modeButton = target.closest('[data-mode-value]');
+    if (modeButton) {
+      const nextMode = modeButton.dataset.modeValue;
+      if (!hasModes || !module.modes.some((mode) => mode.id === nextMode)) return;
+      activeMode = nextMode;
+      state.modes[meta.id] = activeMode;
+      persistSoon();
+      syncModeFields();
+      update();
+      return;
+    }
+
+    const control = target.closest('[data-step], [data-set-value]');
+    if (!control) return;
+    const field = module.fields.find((item) => item.id === control.dataset.target);
+    const input = field ? inputFor(field) : null;
+    if (!field || !input) return;
+
+    if (control.dataset.step != null) {
+      const step = Number(control.dataset.step);
+      const current = input.value === '' ? Number(field.default ?? 0) : Number(input.value);
+      const base = Number.isFinite(current) ? current : 0;
+      let next = base + step;
+      if (field.min != null) next = Math.max(next, field.min);
+      if (field.max != null) next = Math.min(next, field.max);
+      input.value = String(Number(next.toFixed(6)));
+    } else {
+      input.value = control.dataset.setValue;
+    }
+
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
 
   form.addEventListener('input', update);
   form.addEventListener('change', update);
@@ -491,10 +679,12 @@ function renderCalculator(module) {
       const input = inputFor(field);
       if (input) input.value = field.default ?? '';
     }
+    syncModeFields();
     update();
     showToast('Inputs reset');
   });
 
+  syncModeFields();
   update();
 }
 
@@ -575,6 +765,7 @@ function renderResult(result, module) {
   const primaries = outputs.filter((output) => output.primary);
   const secondaries = outputs.filter((output) => !output.primary);
   const notes = Array.isArray(result.notes) ? result.notes : [];
+  const alerts = Array.isArray(result.alerts) ? result.alerts : [];
 
   container.innerHTML = `
     <div class="result-panel">
@@ -587,6 +778,7 @@ function renderResult(result, module) {
       </div>
 
       ${result.status ? statusMarkup(result.status) : ''}
+      ${alerts.map(statusMarkup).join('')}
 
       ${primaries.length ? `<div class="hero-grid">${primaries.map(heroMetric).join('')}</div>` : ''}
 
@@ -603,6 +795,19 @@ function renderResult(result, module) {
           : ''
       }
 
+      ${
+        module.meta.inspectionLog
+          ? `
+            <div class="result-actions">
+              <button class="btn btn-ghost" type="button" data-action="copy-inspection">
+                ${svgIcon('copy')}
+                <span>Copy Inspection Log as Markdown</span>
+              </button>
+            </div>
+          `
+          : ''
+      }
+
       <p class="result-footnote">Calculated on-device · ${esc(module.meta.name)}</p>
     </div>
   `;
@@ -612,15 +817,21 @@ function renderResult(result, module) {
 /* Summary export                                                              */
 /* -------------------------------------------------------------------------- */
 
-function summaryInputs(module, raw) {
+function summaryInputs(module, raw, mode) {
   const inputs = [];
   if (!raw) return inputs;
 
+  if (Array.isArray(module.modes)) {
+    const modeLabel = module.modes.find((item) => item.id === mode)?.label;
+    if (modeLabel) inputs.push({ label: 'Mode', value: modeLabel });
+  }
+
   for (const field of module.fields) {
+    if (field.mode && field.mode !== mode) continue;
     const value = raw[field.id];
     if (value == null || value === '') continue;
 
-    if (field.type === 'select') {
+    if (field.type === 'select' || field.type === 'segmented') {
       const option = field.options.find((item) => String(item.value) === String(value));
       inputs.push({ label: field.label, value: option?.label ?? value });
     } else if (field.type === 'number') {
@@ -707,7 +918,13 @@ function showCopyFallback(markdown) {
  * Builds a report-ready block from any calculator result, then writes it to the
  * clipboard (with a manual-copy dialog as a last-resort fallback).
  */
-export async function copySummaryAsMarkdown({ title, category, inputs = [], result }) {
+export async function copySummaryAsMarkdown({
+  title,
+  category,
+  inputs = [],
+  result,
+  successMessage = 'Summary copied as Markdown',
+}) {
   let markdown;
   try {
     markdown = buildSummaryMarkdown({
@@ -726,7 +943,7 @@ export async function copySummaryAsMarkdown({ title, category, inputs = [], resu
 
   const copied = await copyPlainText(markdown);
   if (copied) {
-    showToast('Summary copied as Markdown');
+    showToast(successMessage);
   } else {
     showCopyFallback(markdown);
   }
@@ -778,7 +995,7 @@ function renderRoute() {
 
   if (route.name === 'home') {
     renderHome();
-    document.title = `${APP_NAME} — Field Technical Calculators`;
+    document.title = `${APP_NAME} — Wastewater & Septic Calculators`;
   } else if (route.name === 'calc') {
     const module = getModule(route.id);
     if (module) {
@@ -842,22 +1059,28 @@ view.addEventListener('click', async (event) => {
     return;
   }
 
-  if (target.closest('[data-action="copy-summary"]')) {
+  const copyButton = target.closest('[data-action="copy-summary"], [data-action="copy-inspection"]');
+  if (copyButton) {
     if (!activeCalc.module || activeCalc.result?.ok !== true) return;
-    const button = target.closest('[data-action="copy-summary"]');
-    button.disabled = true;
+    const inspection = copyButton.dataset.action === 'copy-inspection';
+    copyButton.disabled = true;
     try {
       await copySummaryAsMarkdown({
-        title: activeCalc.module.meta.name,
+        title: inspection
+          ? `${activeCalc.module.meta.name} — Inspection Log`
+          : activeCalc.module.meta.name,
         category: activeCalc.module.meta.category,
-        inputs: summaryInputs(activeCalc.module, activeCalc.raw),
+        inputs: summaryInputs(activeCalc.module, activeCalc.raw, activeCalc.mode),
         result: activeCalc.result,
+        successMessage: inspection
+          ? 'Inspection log copied as Markdown'
+          : 'Summary copied as Markdown',
       });
     } catch (error) {
       console.error('[FieldKit] Copy failed', error);
-      showToast('Could not copy the summary');
+      showToast('Could not copy the report');
     } finally {
-      button.disabled = false;
+      copyButton.disabled = false;
     }
   }
 });

@@ -39,6 +39,17 @@ export function outputValue(output) {
   return output.value == null ? '—' : String(output.value);
 }
 
+/** Format a duration in seconds as mm:ss (minutes may exceed 99). */
+export function formatMmSs(seconds) {
+  if (typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds < 0) {
+    return '—';
+  }
+  const total = Math.round(seconds);
+  const minutes = Math.floor(total / 60);
+  const secs = total % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
 /** Convert decimal hours into a compact "2 h 15 min" string. */
 export function formatDuration(hours) {
   if (typeof hours !== 'number' || !Number.isFinite(hours) || hours < 0) {

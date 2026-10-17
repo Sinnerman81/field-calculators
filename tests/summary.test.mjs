@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { outputValue } from '../modules/format.js';
+import { formatMmSs, outputValue } from '../modules/format.js';
 import { buildSummaryMarkdown } from '../modules/summary.js';
 
 const result = {
@@ -15,6 +15,15 @@ const result = {
 };
 
 describe('format helpers', () => {
+  it('formats seconds as mm:ss', () => {
+    assert.equal(formatMmSs(0), '00:00');
+    assert.equal(formatMmSs(65), '01:05');
+    assert.equal(formatMmSs(1500), '25:00');
+    assert.equal(formatMmSs(59.6), '01:00');
+    assert.equal(formatMmSs(-1), '—');
+    assert.equal(formatMmSs(Number.NaN), '—');
+  });
+
   it('formats values by magnitude without noisy decimals', () => {
     assert.equal(outputValue({ value: 230, unit: 'V' }), '230');
     assert.equal(outputValue({ value: 7.7776, unit: 'V' }), '7.78');
@@ -63,6 +72,28 @@ describe('buildSummaryMarkdown', () => {
     assert.match(markdown, /### Inputs\n- —/);
     assert.doesNotMatch(markdown, /### Assumptions/);
     assert.doesNotMatch(markdown, /Status/);
+  });
+
+  it('includes alert details in reports', () => {
+    const markdown = buildSummaryMarkdown({
+      title: 'Drip & OSCAR — Inspection Log',
+      category: 'Drip',
+      inputs: [{ label: 'Mode', value: 'OSCAR Sand-Lined' }],
+      result: {
+        ok: true,
+        outputs: [{ label: 'Total OSCAR flow', value: 2.8, unit: 'GPM' }],
+        alerts: [
+          { level: 'warn', label: 'Dose volume adjusted up to meet manufacturer minimum.' },
+          { level: 'bad', label: 'Exceeds standard 50 GPD/coil rating.' },
+        ],
+      },
+      generatedAt: new Date('2026-10-17T16:42:00Z'),
+    });
+
+    assert.match(markdown, /### Alerts/);
+    assert.match(markdown, /- \*\*WARNING:\*\* Dose volume adjusted/);
+    assert.match(markdown, /- \*\*ALERT:\*\* Exceeds standard/);
+    assert.match(markdown, /- \*\*Mode:\*\* OSCAR Sand-Lined/);
   });
 
   it('rejects incomplete results', () => {

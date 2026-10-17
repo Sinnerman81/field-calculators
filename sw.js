@@ -1,5 +1,5 @@
 /* FieldKit service worker — cache-first app shell, fully offline. */
-const CACHE_NAME = 'fieldkit-shell-v1.0.3';
+const CACHE_NAME = 'fieldkit-shell-v2.0.0';
 
 const ASSETS = [
   './',
@@ -10,17 +10,10 @@ const ASSETS = [
   './modules/format.js',
   './modules/summary.js',
   './modules/registry.js',
-  './modules/ohms-law.js',
-  './modules/voltage-drop.js',
-  './modules/conduit-bend.js',
-  './modules/battery-runtime.js',
-  './modules/subnet.js',
-  './modules/fiber-loss.js',
-  './modules/poe-budget.js',
-  './modules/airflow.js',
-  './modules/superheat-subcooling.js',
-  './modules/rf-link.js',
-  './modules/torque.js',
+  './modules/hydraulic-load.js',
+  './modules/tank-volumes.js',
+  './modules/pressure-distribution.js',
+  './modules/drip-oscar.js',
   './icons/icon.svg',
   './icons/icon-192.png',
   './icons/icon-512.png',

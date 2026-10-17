@@ -1,32 +1,10 @@
-import * as ohmsLaw from './ohms-law.js';
-import * as voltageDrop from './voltage-drop.js';
-import * as conduitBend from './conduit-bend.js';
-import * as batteryRuntime from './battery-runtime.js';
-import * as subnet from './subnet.js';
-import * as fiberLoss from './fiber-loss.js';
-import * as poeBudget from './poe-budget.js';
-import * as airflow from './airflow.js';
-import * as superheatSubcooling from './superheat-subcooling.js';
-import * as rfLink from './rf-link.js';
-import * as torque from './torque.js';
+import * as hydraulicLoad from './hydraulic-load.js';
+import * as tankVolumes from './tank-volumes.js';
+import * as pressureDistribution from './pressure-distribution.js';
+import * as dripOscar from './drip-oscar.js';
 
-/**
- * Dashboard order is intentional: high-frequency field jobs first, then
- * networking, HVAC and general tools.
- */
-export const modules = [
-  ohmsLaw,
-  voltageDrop,
-  conduitBend,
-  batteryRuntime,
-  subnet,
-  fiberLoss,
-  poeBudget,
-  airflow,
-  superheatSubcooling,
-  rfLink,
-  torque,
-];
+/** Dashboard order: measured flow, tank volume, distribution, then drip design. */
+export const modules = [hydraulicLoad, tankVolumes, pressureDistribution, dripOscar];
 
 const byId = new Map(modules.map((module) => [module.meta.id, module]));
 

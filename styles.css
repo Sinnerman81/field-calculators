@@ -595,49 +595,44 @@ svg {
   height: 22px;
 }
 
-.card-icon[data-cat="Network"] {
-  background: rgba(45, 212, 191, 0.12);
-  color: #5eead4;
-}
-
-.card-icon[data-cat="HVAC"] {
+.card-icon[data-cat="Hydraulics"] {
   background: rgba(56, 189, 248, 0.12);
   color: #7dd3fc;
 }
 
-.card-icon[data-cat="RF"] {
+.card-icon[data-cat="Tanks"] {
+  background: rgba(45, 212, 191, 0.12);
+  color: #5eead4;
+}
+
+.card-icon[data-cat="Distribution"] {
   background: rgba(167, 139, 250, 0.14);
   color: #c4b5fd;
 }
 
-.card-icon[data-cat="Tools"] {
-  background: rgba(148, 163, 184, 0.14);
-  color: #cbd5e1;
+.card-icon[data-cat="Drip"] {
+  background: rgba(74, 222, 128, 0.12);
+  color: #86efac;
 }
 
-[data-theme="light"] .card-icon[data-cat="Electrical"] {
-  color: #92400e;
-  background: rgba(180, 90, 5, 0.1);
-}
-
-[data-theme="light"] .card-icon[data-cat="Network"] {
-  color: #0f766e;
-  background: rgba(13, 148, 136, 0.1);
-}
-
-[data-theme="light"] .card-icon[data-cat="HVAC"] {
+[data-theme="light"] .card-icon[data-cat="Hydraulics"] {
   color: #0369a1;
   background: rgba(2, 132, 199, 0.1);
 }
 
-[data-theme="light"] .card-icon[data-cat="RF"] {
+[data-theme="light"] .card-icon[data-cat="Tanks"] {
+  color: #0f766e;
+  background: rgba(13, 148, 136, 0.1);
+}
+
+[data-theme="light"] .card-icon[data-cat="Distribution"] {
   color: #6d28d9;
   background: rgba(109, 40, 217, 0.09);
 }
 
-[data-theme="light"] .card-icon[data-cat="Tools"] {
-  color: #475569;
-  background: rgba(71, 85, 105, 0.1);
+[data-theme="light"] .card-icon[data-cat="Drip"] {
+  color: #15803d;
+  background: rgba(21, 128, 61, 0.1);
 }
 
 .pin-btn {
@@ -881,44 +876,40 @@ svg {
   height: 27px;
 }
 
-.calc-icon-lg[data-cat="Network"] {
-  background: rgba(45, 212, 191, 0.12);
-  color: #5eead4;
-}
-
-.calc-icon-lg[data-cat="HVAC"] {
+.calc-icon-lg[data-cat="Hydraulics"] {
   background: rgba(56, 189, 248, 0.12);
   color: #7dd3fc;
 }
 
-.calc-icon-lg[data-cat="RF"] {
+.calc-icon-lg[data-cat="Tanks"] {
+  background: rgba(45, 212, 191, 0.12);
+  color: #5eead4;
+}
+
+.calc-icon-lg[data-cat="Distribution"] {
   background: rgba(167, 139, 250, 0.14);
   color: #c4b5fd;
 }
 
-.calc-icon-lg[data-cat="Tools"] {
-  background: rgba(148, 163, 184, 0.14);
-  color: #cbd5e1;
+.calc-icon-lg[data-cat="Drip"] {
+  background: rgba(74, 222, 128, 0.12);
+  color: #86efac;
 }
 
-[data-theme="light"] .calc-icon-lg[data-cat="Electrical"] {
-  color: #92400e;
-}
-
-[data-theme="light"] .calc-icon-lg[data-cat="Network"] {
-  color: #0f766e;
-}
-
-[data-theme="light"] .calc-icon-lg[data-cat="HVAC"] {
+[data-theme="light"] .calc-icon-lg[data-cat="Hydraulics"] {
   color: #0369a1;
 }
 
-[data-theme="light"] .calc-icon-lg[data-cat="RF"] {
+[data-theme="light"] .calc-icon-lg[data-cat="Tanks"] {
+  color: #0f766e;
+}
+
+[data-theme="light"] .calc-icon-lg[data-cat="Distribution"] {
   color: #6d28d9;
 }
 
-[data-theme="light"] .calc-icon-lg[data-cat="Tools"] {
-  color: #475569;
+[data-theme="light"] .calc-icon-lg[data-cat="Drip"] {
+  color: #15803d;
 }
 
 .calc-heading {
@@ -991,6 +982,142 @@ svg {
 
 .field--wide {
   grid-column: 1 / -1;
+}
+
+/* Segmented mode switcher */
+.mode-tabs {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 16px;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-soft);
+}
+
+.mode-tab {
+  flex: 1 1 0;
+  min-height: 48px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.mode-tab:hover {
+  color: var(--text);
+}
+
+.mode-tab[aria-pressed="true"] {
+  background: var(--surface-3);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+/* Stepper controls */
+.stepper-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.stepper-row .input-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.step-btn {
+  display: grid;
+  flex: 0 0 52px;
+  place-items: center;
+  width: 52px;
+  min-height: 52px;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 1.3rem;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.step-btn:hover {
+  border-color: var(--text-faint);
+  background: var(--surface-3);
+}
+
+.step-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Quick-select values */
+.quick-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 1px;
+}
+
+.quick-chip {
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 620;
+  white-space: nowrap;
+}
+
+.quick-chip:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.quick-chip[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* Two-option toggle groups */
+.segmented {
+  display: grid;
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-soft);
+}
+
+.segment-btn {
+  min-height: 48px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.segment-btn:hover {
+  color: var(--text);
+}
+
+.segment-btn[aria-pressed="true"] {
+  background: var(--surface-3);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
 }
 
 .field-label {
@@ -1158,6 +1285,18 @@ svg {
   color: var(--text-faint);
   font-size: 0.69rem;
   line-height: 1.5;
+}
+
+.result-actions {
+  margin-top: 14px;
+}
+
+.result-actions .btn {
+  width: 100%;
+  padding: 8px 14px;
+  line-height: 1.3;
+  text-align: center;
+  white-space: normal;
 }
 
 .status {

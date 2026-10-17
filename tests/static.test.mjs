@@ -9,40 +9,87 @@ import { categories, getModule, modules } from '../modules/registry.js';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (path) => readFileSync(join(ROOT, path), 'utf8');
 
-describe('calculator registry', () => {
-  it('exposes unique, valid modules', () => {
-    const ids = modules.map((module) => module.meta.id);
-    assert.equal(new Set(ids).size, ids.length, 'calculator ids must be unique');
-    assert.equal(modules.length, 11);
+const EXPECTED_IDS = ['hydraulic-load', 'tank-volumes', 'pressure-distribution', 'drip-oscar'];
+const OLD_MODULES = [
+  'airflow',
+  'battery-runtime',
+  'conduit-bend',
+  'fiber-loss',
+  'ohms-law',
+  'poe-budget',
+  'rf-link',
+  'subnet',
+  'superheat-subcooling',
+  'torque',
+  'voltage-drop',
+];
 
+describe('wastewater calculator registry', () => {
+  it('exposes exactly the four dedicated modules', () => {
+    assert.deepEqual(
+      modules.map((module) => module.meta.id),
+      EXPECTED_IDS,
+    );
+    assert.equal(getModule('drip-oscar')?.meta.name, 'Drip & OSCAR');
+    assert.equal(getModule('torque'), undefined);
+    for (const id of OLD_MODULES) {
+      assert.equal(getModule(id), undefined, `${id} must be unregistered`);
+      assert.equal(existsSync(join(ROOT, `modules/${id}.js`)), false, `${id}.js must be deleted`);
+    }
+  });
+
+  it('defines valid metadata, modes and fields', () => {
     for (const module of modules) {
-      assert.match(module.meta.id, /^[a-z0-9-]+$/);
-      assert.ok(module.meta.name.length > 2);
-      assert.ok(categories.includes(module.meta.category));
-      assert.ok(module.meta.description.length > 10);
+      const { meta } = module;
+      assert.match(meta.id, /^[a-z0-9-]+$/);
+      assert.ok(meta.name.length > 2);
+      assert.ok(categories.includes(meta.category));
+      assert.ok(meta.description.length > 10);
       assert.equal(typeof module.calculate, 'function');
-      assert.ok(Array.isArray(module.fields) && module.fields.length > 0);
-      assert.equal(getModule(module.meta.id), module);
 
+      const validModes = new Set(
+        Array.isArray(module.modes) ? module.modes.map((mode) => mode.id) : [],
+      );
+      if (Array.isArray(module.modes)) {
+        assert.ok(module.modes.length >= 2, `${meta.id} modes`);
+        for (const mode of module.modes) {
+          assert.ok(mode.id && mode.label);
+        }
+      }
+
+      assert.ok(Array.isArray(module.fields) && module.fields.length > 0);
       const fieldIds = module.fields.map((field) => field.id);
-      assert.equal(new Set(fieldIds).size, fieldIds.length, `${module.meta.id} field ids`);
+      assert.equal(new Set(fieldIds).size, fieldIds.length, `${meta.id} field ids`);
 
       for (const field of module.fields) {
         assert.match(field.id, /^[a-z][a-zA-Z0-9]*$/);
         assert.ok(field.label.length > 1);
-        assert.ok(['number', 'select', 'text'].includes(field.type));
-        if (field.type === 'select') {
+        assert.ok(['number', 'select', 'text', 'segmented'].includes(field.type));
+        if (field.type === 'select' || field.type === 'segmented') {
           assert.ok(Array.isArray(field.options) && field.options.length > 0);
           for (const option of field.options) {
             assert.ok(String(option.value).length > 0);
             assert.ok(option.label.length > 0);
           }
         }
+        if (field.mode) {
+          assert.ok(validModes.has(field.mode), `${field.id} uses an unknown mode`);
+        }
+        if (Array.isArray(field.choices)) {
+          assert.ok(field.choices.length > 0);
+          for (const choice of field.choices) {
+            assert.ok(choice.label.length > 0);
+            assert.ok(choice.value != null);
+          }
+        }
+        if (field.stepper != null) {
+          assert.ok(Number.isFinite(field.stepper) && field.stepper > 0);
+        }
       }
     }
   });
 
-  it('returns a result shell for empty input without throwing', () => {
+  it('returns an input prompt for empty values without throwing', () => {
     for (const module of modules) {
       const empty = Object.fromEntries(module.fields.map((field) => [field.id, null]));
       const result = module.calculate(empty);
@@ -52,28 +99,23 @@ describe('calculator registry', () => {
     }
   });
 
-  it('has complete category ordering', () => {
-    assert.equal(categories[0], 'All');
-    assert.deepEqual(
-      [...new Set(categories.slice(1))].sort(),
-      ['Electrical', 'HVAC', 'Network', 'RF', 'Tools'],
-    );
+  it('orders the wastewater categories', () => {
+    assert.deepEqual(categories, ['All', 'Hydraulics', 'Tanks', 'Distribution', 'Drip']);
   });
 });
 
 describe('HTML shell', () => {
   const html = read('index.html');
 
-  it('wires the manifest, stylesheet, theme and module entry point', () => {
+  it('presents the wastewater app and wires local assets', () => {
     assert.match(html, /<html lang="en" data-theme="dark">/);
+    assert.match(html, /Wastewater & Sep(?:t|amp;t)ic Calculators/);
+    assert.match(html, /Wastewater &amp; septic calculators/);
     assert.match(html, /rel="manifest" href="\.\/manifest\.json"/);
     assert.match(html, /rel="stylesheet" href="\.\/styles\.css"/);
     assert.match(html, /<script type="module" src="\.\/app\.js"><\/script>/);
     assert.match(html, /name="viewport"[^>]*width=device-width/);
-    assert.match(html, /name="theme-color"/);
     assert.match(html, /id="view"/);
-    assert.match(html, /id="theme-btn"/);
-    assert.match(html, /id="toast"/);
   });
 
   it('references only local assets that exist', () => {
@@ -88,8 +130,9 @@ describe('HTML shell', () => {
 describe('PWA manifest', () => {
   const manifest = JSON.parse(read('manifest.json'));
 
-  it('defines installable metadata and existing icons', () => {
+  it('defines installable wastewater metadata and icons', () => {
     assert.equal(manifest.short_name, 'FieldKit');
+    assert.match(manifest.name, /Wastewater/);
     assert.equal(manifest.start_url, './index.html');
     assert.equal(manifest.scope, './');
     assert.equal(manifest.display, 'standalone');
@@ -105,11 +148,12 @@ describe('PWA manifest', () => {
     assert.ok(manifest.icons.some((icon) => icon.purpose === 'maskable'));
   });
 
-  it('shortcut targets use in-app hash routes', () => {
+  it('shortcuts target the new calculators', () => {
+    assert.ok(manifest.shortcuts.length >= 3);
     for (const shortcut of manifest.shortcuts) {
       const moduleId = shortcut.url.split('#/calc/')[1];
       assert.ok(moduleId, `shortcut ${shortcut.name} must target a calculator`);
-      assert.ok(getModule(moduleId), `unknown shortcut target ${moduleId}`);
+      assert.ok(EXPECTED_IDS.includes(moduleId), `unknown shortcut target ${moduleId}`);
     }
   });
 });
@@ -117,7 +161,7 @@ describe('PWA manifest', () => {
 describe('Service worker', () => {
   const sw = read('sw.js');
 
-  it('precaches every runtime asset', () => {
+  it('precaches every wastewater runtime asset', () => {
     const listed = new Set([...sw.matchAll(/'(\.\/[^']+)'/g)].map((match) => match[1]));
     const required = [
       './app.js',
@@ -126,26 +170,27 @@ describe('Service worker', () => {
       './icons/icon-192.png',
       './icons/icon-512.png',
       './modules/registry.js',
-      ...modules.map((module) => `./modules/${module.meta.id}.js`),
       './modules/format.js',
       './modules/summary.js',
+      ...modules.map((module) => `./modules/${module.meta.id}.js`),
     ];
 
     for (const asset of required) {
-      assert.ok(
-        existsSync(join(ROOT, asset)),
-        `asset ${asset} must exist for the service worker to cache it`,
-      );
+      assert.ok(existsSync(join(ROOT, asset)), `asset ${asset} must exist`);
       assert.ok(listed.has(asset), `service worker does not precache ${asset}`);
     }
+
+    for (const id of OLD_MODULES) {
+      assert.equal(listed.has(`./modules/${id}.js`), false, `${id} must not be cached`);
+    }
+    assert.match(sw, /fieldkit-shell-v2\.0\.0/);
   });
 
-  it('handles install, activate and navigation fallback', () => {
+  it('handles install, activate and offline navigation', () => {
     assert.match(sw, /addEventListener\('install'/);
     assert.match(sw, /addEventListener\('activate'/);
     assert.match(sw, /request\.mode === 'navigate'/);
     assert.match(sw, /cache\.match\(SHELL/);
-    assert.match(sw, /skipWaiting/);
     assert.match(sw, /clients\.claim/);
   });
 });
@@ -153,24 +198,29 @@ describe('Service worker', () => {
 describe('App wiring', () => {
   const app = read('app.js');
 
-  it('contains the required routing, state and reporting utilities', () => {
+  it('contains routing, state, custom controls and report actions', () => {
     assert.match(app, /addEventListener\('hashchange'/);
     assert.match(app, /localStorage\.setItem\(STORAGE_KEY/);
+    assert.match(app, /state\.modes/);
+    assert.match(app, /data-mode-value/);
+    assert.match(app, /data-field-mode/);
+    assert.match(app, /data-step/);
+    assert.match(app, /data-set-value/);
+    assert.match(app, /data-action="copy-inspection"/);
+    assert.match(app, /Inspection Log/);
     assert.match(app, /export async function copySummaryAsMarkdown/);
-    assert.match(app, /buildSummaryMarkdown/);
-    assert.match(app, /navigator\.serviceWorker\.register\('\.\/sw\.js'\)/);
-    assert.match(app, /applyFilter/);
     assert.match(app, /step="any"/);
+    assert.match(app, /navigator\.serviceWorker\.register\('\.\/sw\.js'\)/);
   });
 
   it('ships large touch targets for every interactive control', () => {
     const css = read('styles.css');
-    assert.match(css, /min-height:\s*48px/g);
     assert.match(css, /\.input\s*{[^}]*min-height:\s*52px/s);
     assert.match(css, /\.btn\s*{[^}]*min-height:\s*48px/s);
-    assert.match(css, /\.chip\s*{[^}]*min-height:\s*48px/s);
-    assert.match(css, /\.icon-btn\s*{[^}]*height:\s*48px/s);
-    assert.match(css, /\.pin-btn\s*{[^}]*width:\s*48px/s);
+    assert.match(css, /\.mode-tab\s*{[^}]*min-height:\s*48px/s);
+    assert.match(css, /\.step-btn\s*{[^}]*min-height:\s*52px/s);
+    assert.match(css, /\.quick-chip\s*{[^}]*min-height:\s*48px/s);
+    assert.match(css, /\.segment-btn\s*{[^}]*min-height:\s*48px/s);
     assert.match(css, /data-theme="light"/);
   });
 });

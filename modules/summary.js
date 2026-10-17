@@ -56,6 +56,15 @@ export function buildSummaryMarkdown({
     lines.push('', `**Status:** ${result.status.label}`);
   }
 
+  const alerts = Array.isArray(result.alerts) ? result.alerts : [];
+  if (alerts.length > 0) {
+    lines.push('', '### Alerts');
+    for (const alert of alerts) {
+      const prefix = alert.level === 'bad' ? 'ALERT' : 'WARNING';
+      lines.push(`- **${prefix}:** ${alert.label}`);
+    }
+  }
+
   if (Array.isArray(result.notes) && result.notes.length > 0) {
     lines.push('', '### Assumptions');
     for (const note of result.notes) lines.push(`- ${note}`);

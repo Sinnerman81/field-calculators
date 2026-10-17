@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "FieldKit — Field Technical Calculators",
+  "name": "FieldKit — Wastewater & Septic Calculators",
   "short_name": "FieldKit",
-  "description": "Offline-first calculators for electrical, network, HVAC and RF field work.",
+  "description": "Offline-first hydraulic load, tank volume, pressure distribution and drip/OSCAR dosing calculators.",
   "lang": "en",
   "dir": "ltr",
   "start_url": "./index.html",
@@ -35,24 +35,24 @@
   ],
   "shortcuts": [
     {
-      "name": "Voltage Drop",
-      "short_name": "Voltage Drop",
-      "description": "Check conductor voltage drop",
-      "url": "./index.html#/calc/voltage-drop",
+      "name": "Hydraulic Load Test",
+      "short_name": "Load Test",
+      "description": "Measure flow and dose run time",
+      "url": "./index.html#/calc/hydraulic-load",
       "icons": [{ "src": "./icons/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "IPv4 Subnet",
-      "short_name": "Subnet",
-      "description": "Work out network and host ranges",
-      "url": "./index.html#/calc/subnet",
+      "name": "Pressure Distribution",
+      "short_name": "Distribution",
+      "description": "Orifice flow, lateral volume and pump run time",
+      "url": "./index.html#/calc/pressure-distribution",
       "icons": [{ "src": "./icons/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "RF Link Budget",
-      "short_name": "RF Link",
-      "description": "Free-space path loss and margin",
-      "url": "./index.html#/calc/rf-link",
+      "name": "Drip & OSCAR",
+      "short_name": "Drip",
+      "description": "Subsurface drip and OSCAR package dosing",
+      "url": "./index.html#/calc/drip-oscar",
       "icons": [{ "src": "./icons/icon-192.png", "sizes": "192x192" }]
     }
   ]
