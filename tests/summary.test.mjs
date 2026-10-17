@@ -45,9 +45,11 @@ describe('buildSummaryMarkdown', () => {
       ],
       result,
       generatedAt: new Date('2026-10-17T16:42:00Z'),
+      appVersion: 'v1.1.0-wastewater',
     });
 
     assert.match(markdown, /^## Voltage Drop/m);
+    assert.match(markdown, /- \*\*App Version:\*\* v1\.1\.0-wastewater/);
     assert.match(markdown, /\*\*Category:\*\* Electrical/);
     assert.match(markdown, /\*\*Generated:\*\* /);
     assert.match(markdown, /### Inputs/);
@@ -72,6 +74,7 @@ describe('buildSummaryMarkdown', () => {
     assert.match(markdown, /### Inputs\n- —/);
     assert.doesNotMatch(markdown, /### Assumptions/);
     assert.doesNotMatch(markdown, /Status/);
+    assert.doesNotMatch(markdown, /App Version/);
   });
 
   it('includes alert details in reports', () => {

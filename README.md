@@ -63,7 +63,8 @@ All results are estimates for field planning. Verify designs against the applica
 ## Structure
 
 ```
-index.html            app shell and dashboard mount
+index.html            app shell, build badge and dashboard mount
+version.js            single-source build version (badge, reports, cache name)
 styles.css            dark-first design system; light theme via [data-theme]
 app.js                hash router, persisted state, form/result engine,
                       mode tabs, steppers, presets, Markdown reporting
@@ -76,7 +77,8 @@ modules/
   pressure-distribution.js
   drip-oscar.js
 manifest.json         PWA metadata, icons, shortcuts
-sw.js                 cache-first service worker (precaches every asset)
+sw.js                 cache-first service worker (precaches every asset, names
+                      the cache field-calc-${APP_VERSION})
 icons/                generated PNG + SVG app icons
 tools/make-icons.mjs  dependency-free PNG generator
 tests/                node:test suites
@@ -99,14 +101,21 @@ Supported field types are `number`, `select`, `text` and `segmented`. Number fie
 
 1. Create `modules/your-tool.js` with the exports above.
 2. Import it in `modules/registry.js` and add it to `modules`.
-3. Add `./modules/your-tool.js` to `ASSETS` in `sw.js` and bump `CACHE_NAME`.
-4. Add tests in `tests/calculators.test.mjs` and run `npm test`.
+3. Add `./modules/your-tool.js` to `ASSETS` in `sw.js`.
+4. Bump `self.FIELDKIT_VERSION` in `version.js` so the cache name changes.
+5. Add tests in `tests/calculators.test.mjs` and run `npm test`.
 
 ### Reporting
 
 `copySummaryAsMarkdown({ title, category, inputs, result })` builds a timestamped Markdown report with inputs, results, status, alerts and assumptions, copies it to the clipboard, and falls back to a manual-copy dialog if clipboard access is blocked. `window.FieldKit` exposes the helper and `buildSummaryMarkdown` for console use.
 
-The drip/OSCAR module sets `meta.inspectionLog`, which adds the **Copy Inspection Log as Markdown** action to its result panel. The active mode and only that mode’s inputs are included in the report.
+The drip/OSCAR module sets `meta.inspectionLog`, which adds the **Copy Inspection Log as Markdown** action to its result panel. The active mode and only that mode’s inputs are included in the report, and every report carries an **App Version** line from `version.js`.
+
+### Build version and cache invalidation
+
+`version.js` is the single source of truth for the build string (currently `v1.1.0-wastewater`). It is loaded as a classic script in `index.html`, imported into `sw.js` with `importScripts()`, and read by `app.js`. The footer shows **Build: … | Offline Ready** and a **Check for updates** button that calls `registration.update()`, prompts before activating a waiting worker, and reloads once it takes control.
+
+Because the cache name is `field-calc-${APP_VERSION}`, bumping `version.js` installs a fresh cache, precaches the new assets, and deletes caches for older versions on activation. The version also appears in every copied Markdown summary and inspection log.
 
 ## Offline behaviour
 

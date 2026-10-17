@@ -3,7 +3,7 @@ import { formatNumber, outputValue } from './modules/format.js';
 import { buildSummaryMarkdown } from './modules/summary.js';
 
 const APP_NAME = 'FieldKit';
-const APP_VERSION = '2.0.0';
+const APP_VERSION = self.FIELDKIT_VERSION ?? 'dev';
 const STORAGE_KEY = 'fieldkit.state.v1';
 
 /* -------------------------------------------------------------------------- */
@@ -63,9 +63,13 @@ function persistSoon() {
 const view = document.getElementById('view');
 const themeButton = document.getElementById('theme-btn');
 const installButton = document.getElementById('install-btn');
+const updateButton = document.getElementById('update-btn');
+const buildVersionEl = document.getElementById('build-version');
 const toast = document.getElementById('toast');
 let toastTimer = 0;
 let deferredInstallPrompt = null;
+let swRegistration = null;
+let reloadingForUpdate = false;
 
 /* -------------------------------------------------------------------------- */
 /* Icons                                                                       */
@@ -94,6 +98,7 @@ const ICONS = {
   check: '<path d="m5 12.5 4.2 4.2L19 7"/>',
   alert: '<path d="M12 8v5"/><path d="M12 16.5v.1"/><circle cx="12" cy="12" r="9"/>',
   close: '<path d="m6 6 12 12M18 6 6 18"/>',
+  refresh: '<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4.5V11h-6.5"/>',
 };
 
 function svgIcon(name, className = 'icon') {
@@ -156,6 +161,75 @@ window.addEventListener('appinstalled', () => {
   deferredInstallPrompt = null;
   showToast('FieldKit installed — ready offline');
 });
+
+/* -------------------------------------------------------------------------- */
+/* Build stamp and update checks                                               */
+/* -------------------------------------------------------------------------- */
+
+if (buildVersionEl) buildVersionEl.textContent = APP_VERSION;
+
+function waitForWorker(worker) {
+  if (!worker || ['installed', 'activated', 'redundant'].includes(worker.state)) {
+    return Promise.resolve(worker);
+  }
+  return new Promise((resolve) => {
+    const finish = () => {
+      if (!['installed', 'activated', 'redundant'].includes(worker.state)) return;
+      worker.removeEventListener('statechange', finish);
+      resolve(worker);
+    };
+    worker.addEventListener('statechange', finish);
+    window.setTimeout(() => {
+      worker.removeEventListener('statechange', finish);
+      resolve(worker);
+    }, 10000);
+  });
+}
+
+async function checkForUpdates() {
+  if (!('serviceWorker' in navigator)) {
+    showToast('Offline cache is not supported in this browser');
+    return;
+  }
+
+  updateButton.disabled = true;
+  updateButton.classList.add('is-busy');
+
+  try {
+    const registration = swRegistration ?? (await navigator.serviceWorker.getRegistration());
+    if (!registration) {
+      showToast('Offline cache is not registered yet — reload once while online');
+      return;
+    }
+
+    await registration.update();
+    await waitForWorker(registration.installing ?? registration.waiting);
+
+    if (registration.waiting) {
+      const reload = window.confirm(
+        `A new FieldKit build is ready. Reload now to leave ${APP_VERSION}?`,
+      );
+      if (reload) {
+        reloadingForUpdate = true;
+        registration.waiting.postMessage('SKIP_WAITING');
+        window.setTimeout(() => window.location.reload(), 1500);
+      } else {
+        showToast('Update ready — reload when convenient');
+      }
+      return;
+    }
+
+    showToast(`FieldKit ${APP_VERSION} is up to date`);
+  } catch (error) {
+    console.info('[FieldKit] Update check failed:', error?.message ?? error);
+    showToast('Update check failed — check your connection');
+  } finally {
+    updateButton.disabled = false;
+    updateButton.classList.remove('is-busy');
+  }
+}
+
+updateButton?.addEventListener('click', checkForUpdates);
 
 /* -------------------------------------------------------------------------- */
 /* Dashboard                                                                   */
@@ -934,6 +1008,7 @@ export async function copySummaryAsMarkdown({
       result,
       generatedAt: new Date(),
       appName: APP_NAME,
+      appVersion: APP_VERSION,
     });
   } catch (error) {
     console.error('[FieldKit] Could not build summary', error);
@@ -1108,10 +1183,18 @@ document.addEventListener('visibilitychange', () => {
 renderRoute();
 
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch((error) => {
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloadingForUpdate) window.location.reload();
+  });
+
+  window.addEventListener('load', async () => {
+    try {
+      swRegistration = await navigator.serviceWorker.register('./sw.js', {
+        updateViaCache: 'none',
+      });
+    } catch (error) {
       console.info('[FieldKit] Offline cache unavailable:', error?.message ?? error);
-    });
+    }
   });
 }
 

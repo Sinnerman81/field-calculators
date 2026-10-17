@@ -1,9 +1,13 @@
 /* FieldKit service worker — cache-first app shell, fully offline. */
-const CACHE_NAME = 'fieldkit-shell-v2.0.0';
+importScripts('./version.js');
+
+const APP_VERSION = self.FIELDKIT_VERSION;
+const CACHE_NAME = `field-calc-${APP_VERSION}`;
 
 const ASSETS = [
   './',
   './index.html',
+  './version.js',
   './styles.css',
   './app.js',
   './manifest.json',
@@ -27,7 +31,8 @@ self.addEventListener('install', (event) => {
     (async () => {
       const cache = await caches.open(CACHE_NAME);
       await cache.addAll(ASSETS);
-      await self.skipWaiting();
+      // Wait for the page to prompt before activating a new build, so field
+      // users are never swapped mid-calculation without a reload.
     })(),
   );
 });
@@ -38,7 +43,11 @@ self.addEventListener('activate', (event) => {
       const keys = await caches.keys();
       await Promise.all(
         keys
-          .filter((key) => key.startsWith('fieldkit-') && key !== CACHE_NAME)
+          .filter(
+            (key) =>
+              key !== CACHE_NAME &&
+              (key.startsWith('field-calc-') || key.startsWith('fieldkit-')),
+          )
           .map((key) => caches.delete(key)),
       );
       await self.clients.claim();

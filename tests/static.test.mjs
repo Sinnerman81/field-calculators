@@ -113,9 +113,18 @@ describe('HTML shell', () => {
     assert.match(html, /Wastewater &amp; septic calculators/);
     assert.match(html, /rel="manifest" href="\.\/manifest\.json"/);
     assert.match(html, /rel="stylesheet" href="\.\/styles\.css"/);
+    assert.match(html, /<script src="\.\/version\.js"><\/script>/);
     assert.match(html, /<script type="module" src="\.\/app\.js"><\/script>/);
     assert.match(html, /name="viewport"[^>]*width=device-width/);
     assert.match(html, /id="view"/);
+  });
+
+  it('shows the build badge and update control in the footer', () => {
+    assert.match(html, /id="build-badge"/);
+    assert.match(html, /Build: <strong id="build-version">/);
+    assert.match(html, /Offline Ready/);
+    assert.match(html, /id="update-btn"/);
+    assert.match(html, /Check for updates/);
   });
 
   it('references only local assets that exist', () => {
@@ -183,7 +192,21 @@ describe('Service worker', () => {
     for (const id of OLD_MODULES) {
       assert.equal(listed.has(`./modules/${id}.js`), false, `${id} must not be cached`);
     }
-    assert.match(sw, /fieldkit-shell-v2\.0\.0/);
+    assert.ok(listed.has('./version.js'), 'service worker must precache version.js');
+  });
+
+  it('derives the cache name from the shared build version', () => {
+    const versionSource = read('version.js');
+    const match = versionSource.match(/self\.FIELDKIT_VERSION = '([^']+)'/);
+    assert.ok(match, 'version.js must define self.FIELDKIT_VERSION');
+    assert.match(match[1], /^v\d+\.\d+\.\d+[\w.-]*$/);
+
+    assert.match(sw, /importScripts\('\.\/version\.js'\)/);
+    assert.match(sw, /const APP_VERSION = self\.FIELDKIT_VERSION/);
+    assert.match(sw, /const CACHE_NAME = `field-calc-\$\{APP_VERSION\}`/);
+    assert.match(sw, /key\.startsWith\('field-calc-'\)/);
+    assert.match(sw, /key\.startsWith\('fieldkit-'\)/);
+    assert.doesNotMatch(sw, /fieldkit-shell-v2\.0\.0/);
   });
 
   it('handles install, activate and offline navigation', () => {
@@ -210,7 +233,20 @@ describe('App wiring', () => {
     assert.match(app, /Inspection Log/);
     assert.match(app, /export async function copySummaryAsMarkdown/);
     assert.match(app, /step="any"/);
-    assert.match(app, /navigator\.serviceWorker\.register\('\.\/sw\.js'\)/);
+    assert.match(app, /navigator\.serviceWorker\.register\('\.\/sw\.js',\s*\{\s*updateViaCache: 'none',?\s*\}\)/);
+  });
+
+  it('wires the build version, cache refresh and report stamp', () => {
+    assert.match(app, /const APP_VERSION = self\.FIELDKIT_VERSION \?\? 'dev'/);
+    assert.match(app, /buildVersionEl\.textContent = APP_VERSION/);
+    assert.match(app, /registration\.update\(\)/);
+    assert.match(app, /registration\.waiting\.postMessage\('SKIP_WAITING'\)/);
+    assert.match(app, /controllerchange/);
+    assert.match(app, /appVersion: APP_VERSION/);
+
+    const summary = read('modules/summary.js');
+    assert.match(summary, /appVersion = ''/);
+    assert.match(summary, /\*\*App Version:\*\*/);
   });
 
   it('ships large touch targets for every interactive control', () => {

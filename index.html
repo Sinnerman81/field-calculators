@@ -87,7 +87,24 @@
     <main id="view" tabindex="-1"></main>
 
     <footer class="app-footer">
-      <span>FieldKit v2.0</span>
+      <span class="build-badge" id="build-badge">
+        <span>Build: <strong id="build-version">dev</strong></span>
+        <span class="footer-dot" aria-hidden="true"></span>
+        <span>Offline Ready</span>
+      </span>
+      <button
+        class="footer-update"
+        id="update-btn"
+        type="button"
+        aria-label="Check for updates"
+        title="Check for updates"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 11a8 8 0 1 0-2.3 5.7" />
+          <path d="M20 4.5V11h-6.5" />
+        </svg>
+        <span>Check for updates</span>
+      </button>
       <span class="footer-dot" aria-hidden="true"></span>
       <span>Works offline · no accounts · no tracking</span>
     </footer>
@@ -101,6 +118,11 @@
       </div>
     </noscript>
 
+    <script src="./version.js"></script>
+    <script>
+      // Stamp the footer before module imports resolve, so no "dev" flash.
+      document.getElementById('build-version').textContent = self.FIELDKIT_VERSION;
+    </script>
     <script type="module" src="./app.js"></script>
   </body>
 </html>

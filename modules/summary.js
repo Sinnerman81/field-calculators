@@ -20,6 +20,7 @@ export function buildSummaryMarkdown({
   result,
   generatedAt = new Date(),
   appName = 'FieldKit',
+  appVersion = '',
 }) {
   if (!title) throw new TypeError('A summary needs a title.');
   if (!result || result.ok !== true) {
@@ -29,7 +30,9 @@ export function buildSummaryMarkdown({
   const lines = [`## ${title}`, ''];
 
   if (category) lines.push(`**Category:** ${category}`);
-  lines.push(`**Generated:** ${formatTimestamp(generatedAt)}`, '');
+  lines.push(`**Generated:** ${formatTimestamp(generatedAt)}`);
+  if (appVersion) lines.push(`- **App Version:** ${appVersion}`);
+  lines.push('');
 
   lines.push('### Inputs');
   if (inputs.length === 0) {
