@@ -3,9 +3,9 @@ export const meta = {
   name: 'Field Utilities',
   category: 'Utilities',
   icon: 'wrench',
-  description: 'Compare field flow to plan flow, convert time and tape readings, and resolve inch fractions.',
-  keywords: ['utility', 'accuracy', 'conversion', 'time', 'tape', 'fraction', 'gpm', 'field'],
-  hint: 'Use the double check to document field flow against the design flow before dosing calculations.',
+  description: 'Verify field flow and daily dosing, convert time and tape readings, and resolve inch fractions.',
+  keywords: ['utility', 'accuracy', 'conversion', 'time', 'tape', 'fraction', 'gpm', 'field', 'dosing'],
+  hint: 'Use the double check to verify the field dose and daily total against the design flow.',
   inspectionLog: true,
 };
 
@@ -29,22 +29,69 @@ const FRACTIONS = [
 export const fields = [
   {
     id: 'fieldGpm',
-    label: 'Calculated GPM (field)',
+    label: 'Field pump flow rate',
     unit: 'GPM',
     type: 'number',
     min: 0,
     step: 'any',
+    default: '4.5',
+    stepper: 0.5,
     placeholder: '4.5',
     mode: 'double-check',
   },
   {
     id: 'designGpm',
-    label: 'Design GPM (plans)',
+    label: 'Design GPM (plans, optional)',
     unit: 'GPM',
     type: 'number',
     min: 0,
     step: 'any',
     placeholder: '4.5',
+    hint: 'Optional flow check against the plan GPM',
+    mode: 'double-check',
+  },
+  {
+    id: 'dosingOnTime',
+    label: 'On-time',
+    unit: 'min',
+    type: 'number',
+    min: 0,
+    step: 'any',
+    default: '8.0',
+    stepper: 0.5,
+    placeholder: '8.0',
+    mode: 'double-check',
+  },
+  {
+    id: 'dosingDoses',
+    label: 'Doses per day',
+    type: 'number',
+    min: 1,
+    step: '1',
+    default: '12',
+    stepper: 1,
+    placeholder: '12',
+    choices: [
+      { value: 4, label: '4' },
+      { value: 6, label: '6' },
+      { value: 8, label: '8' },
+      { value: 12, label: '12' },
+      { value: 18, label: '18' },
+      { value: 24, label: '24' },
+    ],
+    mode: 'double-check',
+  },
+  {
+    id: 'designGpd',
+    label: 'Design / target daily GPD',
+    unit: 'GPD',
+    type: 'number',
+    min: 0,
+    step: 'any',
+    default: '432.0',
+    stepper: 10,
+    placeholder: '432.0',
+    hint: 'Optional comparison for variance and accuracy',
     mode: 'double-check',
   },
   {
@@ -90,28 +137,78 @@ export const fields = [
 ];
 
 function doubleCheck(values) {
-  const { fieldGpm, designGpm } = values;
+  const { fieldGpm, designGpm, dosingOnTime, dosingDoses, designGpd } = values;
 
-  if (!Number.isFinite(fieldGpm) || fieldGpm < 0) {
-    return { ok: false, tone: 'error', message: 'Enter the calculated field GPM.' };
+  if (!Number.isFinite(fieldGpm) || fieldGpm <= 0) {
+    return { ok: false, tone: 'error', message: 'Enter a field pump flow rate greater than zero.' };
   }
-  if (!Number.isFinite(designGpm) || designGpm <= 0) {
+  if (!Number.isFinite(dosingOnTime) || dosingOnTime <= 0) {
+    return { ok: false, tone: 'error', message: 'Enter an on-time greater than zero.' };
+  }
+  if (!Number.isFinite(dosingDoses) || !Number.isInteger(dosingDoses) || dosingDoses <= 0) {
+    return {
+      ok: false,
+      tone: 'error',
+      message: 'Enter a whole number of doses per day greater than zero.',
+    };
+  }
+  if (designGpm != null && (!Number.isFinite(designGpm) || designGpm <= 0)) {
     return { ok: false, tone: 'error', message: 'Enter a design GPM greater than zero.' };
   }
+  if (designGpd != null && (!Number.isFinite(designGpd) || designGpd <= 0)) {
+    return { ok: false, tone: 'error', message: 'Enter a design daily GPD greater than zero.' };
+  }
 
-  const difference = fieldGpm - designGpm;
-  const accuracy = (fieldGpm / designGpm) * 100;
+  const gallonsPerDose = fieldGpm * dosingOnTime;
+  const gallonsPerDay = gallonsPerDose * dosingDoses;
+  const outputs = [
+    { label: 'Gallons per dose', display: gallonsPerDose.toFixed(1), unit: 'gal', primary: true },
+    { label: 'Total daily flow', display: gallonsPerDay.toFixed(1), unit: 'GPD', primary: true },
+  ];
+  const notes = [
+    'Gallons per dose = field GPM × on-time.',
+    'Total daily flow = gallons per dose × doses per day.',
+  ];
+
+  if (designGpd != null) {
+    const variance = gallonsPerDay - designGpd;
+    const accuracy = (gallonsPerDay / designGpd) * 100;
+    outputs.push(
+      { label: 'Variance', display: variance.toFixed(1), unit: 'GPD' },
+      { label: 'Accuracy', display: accuracy.toFixed(1), unit: '%' },
+    );
+    notes.push(
+      'Variance = calculated daily GPD − design daily GPD.',
+      'Accuracy = (calculated daily GPD ÷ design daily GPD) × 100.',
+    );
+  }
+
+  if (designGpm != null) {
+    outputs.push(
+      { label: 'GPM difference', value: fieldGpm - designGpm, unit: 'GPM' },
+      { label: 'Flow accuracy', value: (fieldGpm / designGpm) * 100, unit: '%' },
+    );
+    notes.push('GPM difference = field GPM − design GPM; flow accuracy compares field flow to plan flow.');
+  }
+
+  const onTimeLabel = Number.isInteger(dosingOnTime)
+    ? dosingOnTime.toFixed(1)
+    : String(dosingOnTime);
 
   return {
     ok: true,
-    outputs: [
-      { label: 'GPM difference', value: difference, unit: 'GPM', primary: true },
-      { label: 'Accuracy', value: accuracy, unit: '%', primary: true },
-    ],
-    notes: [
-      'GPM difference = calculated field GPM − design GPM.',
-      'Accuracy = (field GPM ÷ design GPM) × 100.',
-    ],
+    outputs,
+    inspection: {
+      heading: 'Dosing Double Check Verification',
+      rows: [
+        { label: 'Field Flow Rate', value: String(fieldGpm), unit: 'GPM' },
+        { label: 'On-Time', value: onTimeLabel, unit: 'min' },
+        { label: 'Doses/Day', value: String(dosingDoses) },
+        { label: 'Calculated Dose Volume', value: gallonsPerDose.toFixed(1), unit: 'gal' },
+        { label: 'Calculated Daily Total', value: gallonsPerDay.toFixed(1), unit: 'GPD' },
+      ],
+    },
+    notes,
   };
 }
 

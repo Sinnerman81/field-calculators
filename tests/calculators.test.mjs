@@ -279,15 +279,98 @@ describe('Drip & OSCAR', () => {
 });
 
 describe('Field Utilities', () => {
-  it('compares field and design flow', () => {
+  it('verifies dosing with one-decimal dose, daily total, variance and accuracy', () => {
+    const result = utilities.calculate({
+      mode: 'double-check',
+      fieldGpm: 4.5,
+      dosingOnTime: 8,
+      dosingDoses: 12,
+      designGpd: 432,
+    });
+    assert.equal(result.ok, true);
+    assert.equal(output(result, 'Gallons per dose').display, '36.0');
+    assert.equal(output(result, 'Total daily flow').display, '432.0');
+    assert.equal(output(result, 'Variance').display, '0.0');
+    assert.equal(output(result, 'Accuracy').display, '100.0');
+  });
+
+  it('shows variance and accuracy against a custom design daily total', () => {
+    const result = utilities.calculate({
+      mode: 'double-check',
+      fieldGpm: 4.5,
+      dosingOnTime: 8,
+      dosingDoses: 12,
+      designGpd: 400,
+    });
+    assert.equal(output(result, 'Variance').display, '32.0');
+    assert.equal(output(result, 'Accuracy').display, '108.0');
+  });
+
+  it('omits the comparison outputs when design daily GPD is blank', () => {
+    const result = utilities.calculate({
+      mode: 'double-check',
+      fieldGpm: 4.5,
+      dosingOnTime: 8,
+      dosingDoses: 12,
+      designGpd: null,
+    });
+    assert.equal(result.ok, true);
+    assert.equal(output(result, 'Gallons per dose').display, '36.0');
+    assert.equal(output(result, 'Total daily flow').display, '432.0');
+    assert.equal(result.outputs.some((item) => item.label === 'Variance'), false);
+    assert.equal(result.outputs.some((item) => item.label === 'Accuracy'), false);
+  });
+
+  it('builds the fixed dosing double check inspection block', () => {
+    const result = utilities.calculate({
+      mode: 'double-check',
+      fieldGpm: 4.5,
+      dosingOnTime: 8,
+      dosingDoses: 12,
+      designGpd: 432,
+    });
+    assert.equal(result.inspection.heading, 'Dosing Double Check Verification');
+    assert.deepEqual(
+      result.inspection.rows.map((row) => [row.label, row.value, row.unit ?? '']),
+      [
+        ['Field Flow Rate', '4.5', 'GPM'],
+        ['On-Time', '8.0', 'min'],
+        ['Doses/Day', '12', ''],
+        ['Calculated Dose Volume', '36.0', 'gal'],
+        ['Calculated Daily Total', '432.0', 'GPD'],
+      ],
+    );
+  });
+
+  it('keeps the optional plan-flow comparison', () => {
     const result = utilities.calculate({
       mode: 'double-check',
       fieldGpm: 5,
       designGpm: 4,
+      dosingOnTime: 8,
+      dosingDoses: 12,
+      designGpd: 432,
     });
-    assert.equal(result.ok, true);
     close(output(result, 'GPM difference').value, 1);
-    close(output(result, 'Accuracy').value, 125);
+    close(output(result, 'Flow accuracy').value, 125);
+  });
+
+  it('exposes the dosing defaults, steps and daily presets', () => {
+    const byId = Object.fromEntries(utilities.fields.map((field) => [field.id, field]));
+    assert.equal(byId.fieldGpm.default, '4.5');
+    assert.equal(byId.fieldGpm.step, 'any');
+    assert.equal(byId.fieldGpm.stepper, 0.5);
+    assert.equal(byId.dosingOnTime.default, '8.0');
+    assert.equal(byId.dosingOnTime.step, 'any');
+    assert.equal(byId.dosingOnTime.stepper, 0.5);
+    assert.equal(byId.dosingDoses.default, '12');
+    assert.equal(byId.dosingDoses.stepper, 1);
+    assert.deepEqual(
+      byId.dosingDoses.choices.map((choice) => choice.value),
+      [4, 6, 8, 12, 18, 24],
+    );
+    assert.equal(byId.designGpd.default, '432.0');
+    assert.equal(byId.designGpd.stepper, 10);
   });
 
   it('converts minutes and seconds to decimal minutes', () => {
@@ -310,7 +393,18 @@ describe('Field Utilities', () => {
   });
 
   it('rejects invalid inputs', () => {
-    assert.equal(utilities.calculate({ mode: 'double-check', fieldGpm: 5, designGpm: 0 }).ok, false);
+    const base = {
+      mode: 'double-check',
+      fieldGpm: 4.5,
+      dosingOnTime: 8,
+      dosingDoses: 12,
+      designGpd: 432,
+    };
+    assert.equal(utilities.calculate({ ...base, fieldGpm: 0 }).ok, false);
+    assert.equal(utilities.calculate({ ...base, dosingOnTime: 0 }).ok, false);
+    assert.equal(utilities.calculate({ ...base, dosingDoses: 2.5 }).ok, false);
+    assert.equal(utilities.calculate({ ...base, designGpd: 0 }).ok, false);
+    assert.equal(utilities.calculate({ ...base, designGpm: 0 }).ok, false);
     assert.equal(utilities.calculate({ mode: 'time', minutes: -1, seconds: 0 }).ok, false);
     assert.equal(utilities.calculate({ mode: 'tape', feet: -1 }).ok, false);
     assert.equal(utilities.calculate({ mode: 'fraction', fraction: '0.3' }).ok, false);

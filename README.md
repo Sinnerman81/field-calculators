@@ -47,7 +47,7 @@ Three modes with a top-level switcher:
 
 ### Field Utilities (`field-utilities`)
 
-- **Double Check:** field GPM vs design GPM, difference and accuracy percentage.
+- **Double Check:** field pump GPM, on-time and doses/day produce dose volume and daily GPD, with variance and accuracy against an optional design daily GPD (plus an optional plan-GPM comparison). The inspection log writes a fixed **Dosing Double Check Verification** block.
 - **Time:** minutes + seconds to decimal minutes.
 - **Tape:** feet to inches.
 - **Fractions:** 1/8 through 7/8 as decimal inches.
