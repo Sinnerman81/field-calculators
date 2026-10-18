@@ -38,6 +38,7 @@ Three modes with a top-level switcher:
 
 - **Squirt Height:** orifice presets 1/8", 5/32", 3/16" (default) and 1/4"; squirt height default 2 ft (±0.5); 90 orifices (±1). `GPM per orifice = 11.78 × d² × √(squirt × 0.433)`; `total = per-orifice × count`.
 - **Run Time & Daily Dose:** `gallons per dose = GPM × on-time`; `gallons per day = dose × doses per day`.
+- **Pump Dosing:** 4.5 GPM (±0.5), 8.0 min (±0.5) and 12 doses/day (±1) defaults with 4/6/8/12/18/24 dose presets. Outputs round to one decimal and the inspection log writes a fixed **Pump Dosing / Pressure Rate Check** block.
 
 ### Drip & OSCAR (`drip-oscar`)
 
@@ -89,7 +90,7 @@ export function calculate(values) {
 }
 ```
 
-Supported field types are `number`, `select`, `text` and `segmented`. Number fields render as `type="number" step="any" inputmode="decimal"`, can include `stepper`, `choices` (quick-select buttons) and `mode` visibility.
+Supported field types are `number`, `select`, `text` and `segmented`. Number fields render as `type="number"` with `inputmode="decimal"` and an optional `step` (defaults to `any`), and can include `stepper`, `choices` (quick-select buttons) and `mode` visibility.
 
 ### Add a calculator
 

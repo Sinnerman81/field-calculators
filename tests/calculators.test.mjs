@@ -151,6 +151,45 @@ describe('Pressure Distribution', () => {
     close(output(result, 'Gallons per day').value, 432);
   });
 
+  it('calculates pump dosing to one decimal and builds the inspection rows', () => {
+    const result = distribution.calculate({
+      mode: 'pump',
+      pumpGpm: 4.5,
+      pumpOnTime: 8,
+      pumpDoses: 12,
+    });
+    assert.equal(result.ok, true);
+    assert.equal(output(result, 'Gallons per dose').display, '36.0');
+    assert.equal(output(result, 'Gallons per day').display, '432.0');
+    assert.equal(result.inspection.heading, 'Pump Dosing / Pressure Rate Check');
+    assert.deepEqual(
+      result.inspection.rows.map((row) => [row.label, row.value, row.unit ?? '']),
+      [
+        ['Flow Rate', '4.5', 'GPM'],
+        ['On-Time', '8', 'min'],
+        ['Doses/Day', '12', ''],
+        ['Gallons per Dose', '36.0', 'gal'],
+        ['Gallons per Day', '432.0', 'GPD'],
+      ],
+    );
+  });
+
+  it('exposes the pump dosing defaults, steps and dose presets', () => {
+    const byId = Object.fromEntries(distribution.fields.map((field) => [field.id, field]));
+    assert.equal(byId.pumpGpm.default, '4.5');
+    assert.equal(byId.pumpGpm.step, 'any');
+    assert.equal(byId.pumpGpm.stepper, 0.5);
+    assert.equal(byId.pumpOnTime.default, '8.0');
+    assert.equal(byId.pumpOnTime.step, 'any');
+    assert.equal(byId.pumpOnTime.stepper, 0.5);
+    assert.equal(byId.pumpDoses.default, '12');
+    assert.equal(byId.pumpDoses.step, '1');
+    assert.deepEqual(
+      byId.pumpDoses.choices.map((choice) => choice.value),
+      [4, 6, 8, 12, 18, 24],
+    );
+  });
+
   it('requires positive squirt, flow and dose values', () => {
     assert.equal(
       distribution.calculate({ mode: 'squirt', orificeSize: '0.187', squirtHeight: 0, orificeCount: 90 }).ok,
@@ -166,6 +205,14 @@ describe('Pressure Distribution', () => {
     );
     assert.equal(
       distribution.calculate({ mode: 'runtime', runtimeGpm: 4.5, runtimeOnTime: 0, runtimeDoses: 12 }).ok,
+      false,
+    );
+    assert.equal(
+      distribution.calculate({ mode: 'pump', pumpGpm: 0, pumpOnTime: 8, pumpDoses: 12 }).ok,
+      false,
+    );
+    assert.equal(
+      distribution.calculate({ mode: 'pump', pumpGpm: 4.5, pumpOnTime: 8, pumpDoses: 2.5 }).ok,
       false,
     );
   });

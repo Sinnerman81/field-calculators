@@ -2,7 +2,7 @@
   "id": "./",
   "name": "FieldKit — Wastewater & Septic Calculators",
   "short_name": "FieldKit",
-  "description": "Offline-first hydraulic load, tank volume, pressure distribution and drip/OSCAR dosing calculators.",
+  "description": "Offline-first hydraulic load, tank volume, pressure distribution, drip/OSCAR dosing and field utility calculators.",
   "lang": "en",
   "dir": "ltr",
   "start_url": "./index.html",
@@ -53,6 +53,13 @@
       "short_name": "Drip",
       "description": "Subsurface drip and OSCAR package dosing",
       "url": "./index.html#/calc/drip-oscar",
+      "icons": [{ "src": "./icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Field Utilities",
+      "short_name": "Utilities",
+      "description": "Plan checks, conversions and fractions",
+      "url": "./index.html#/calc/field-utilities",
       "icons": [{ "src": "./icons/icon-192.png", "sizes": "192x192" }]
     }
   ]

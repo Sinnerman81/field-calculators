@@ -1,6 +1,6 @@
 import { categories, getModule, modules } from './modules/registry.js';
 import { formatNumber, outputValue } from './modules/format.js';
-import { buildSummaryMarkdown } from './modules/summary.js';
+import { buildInspectionMarkdown, buildSummaryMarkdown } from './modules/summary.js';
 
 const APP_NAME = 'FieldKit';
 const APP_VERSION = self.FIELDKIT_VERSION ?? 'dev';
@@ -997,19 +997,27 @@ export async function copySummaryAsMarkdown({
   category,
   inputs = [],
   result,
+  inspection = false,
   successMessage = 'Summary copied as Markdown',
 }) {
   let markdown;
   try {
-    markdown = buildSummaryMarkdown({
-      title,
-      category,
-      inputs,
-      result,
-      generatedAt: new Date(),
-      appName: APP_NAME,
-      appVersion: APP_VERSION,
-    });
+    markdown =
+      inspection && result.inspection
+        ? buildInspectionMarkdown({
+            heading: result.inspection.heading,
+            appVersion: APP_VERSION,
+            rows: result.inspection.rows,
+          })
+        : buildSummaryMarkdown({
+            title,
+            category,
+            inputs,
+            result,
+            generatedAt: new Date(),
+            appName: APP_NAME,
+            appVersion: APP_VERSION,
+          });
   } catch (error) {
     console.error('[FieldKit] Could not build summary', error);
     showToast('Could not build the summary');
@@ -1147,6 +1155,7 @@ view.addEventListener('click', async (event) => {
         category: activeCalc.module.meta.category,
         inputs: summaryInputs(activeCalc.module, activeCalc.raw, activeCalc.mode),
         result: activeCalc.result,
+        inspection,
         successMessage: inspection
           ? 'Inspection log copied as Markdown'
           : 'Summary copied as Markdown',

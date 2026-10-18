@@ -12,6 +12,7 @@ export const meta = {
 export const modes = [
   { id: 'squirt', label: 'Squirt Height' },
   { id: 'runtime', label: 'Run Time & Daily Dose' },
+  { id: 'pump', label: 'Pump Dosing' },
 ];
 
 const ORIFICE_SIZES = [0.125, 0.156, 0.187, 0.25];
@@ -88,6 +89,49 @@ export const fields = [
     placeholder: '12',
     mode: 'runtime',
   },
+  {
+    id: 'pumpGpm',
+    label: 'Gallons per minute',
+    unit: 'GPM',
+    type: 'number',
+    min: 0,
+    step: 'any',
+    default: '4.5',
+    stepper: 0.5,
+    placeholder: '4.5',
+    mode: 'pump',
+  },
+  {
+    id: 'pumpOnTime',
+    label: 'On-time',
+    unit: 'min',
+    type: 'number',
+    min: 0,
+    step: 'any',
+    default: '8.0',
+    stepper: 0.5,
+    placeholder: '8.0',
+    mode: 'pump',
+  },
+  {
+    id: 'pumpDoses',
+    label: 'Doses per day',
+    type: 'number',
+    min: 1,
+    step: '1',
+    default: '12',
+    stepper: 1,
+    placeholder: '12',
+    choices: [
+      { value: 4, label: '4' },
+      { value: 6, label: '6' },
+      { value: 8, label: '8' },
+      { value: 12, label: '12' },
+      { value: 18, label: '18' },
+      { value: 24, label: '24' },
+    ],
+    mode: 'pump',
+  },
 ];
 
 function calculateSquirt(values) {
@@ -155,12 +199,57 @@ function calculateRuntime(values) {
   };
 }
 
+function calculatePump(values) {
+  const { pumpGpm, pumpOnTime, pumpDoses } = values;
+
+  if (!Number.isFinite(pumpGpm) || pumpGpm <= 0) {
+    return { ok: false, tone: 'error', message: 'Enter a flow rate greater than zero.' };
+  }
+  if (!Number.isFinite(pumpOnTime) || pumpOnTime <= 0) {
+    return { ok: false, tone: 'error', message: 'Enter an on-time greater than zero.' };
+  }
+  if (!Number.isFinite(pumpDoses) || !Number.isInteger(pumpDoses) || pumpDoses <= 0) {
+    return {
+      ok: false,
+      tone: 'error',
+      message: 'Enter a whole number of doses per day greater than zero.',
+    };
+  }
+
+  const gallonsPerDose = pumpGpm * pumpOnTime;
+  const gallonsPerDay = gallonsPerDose * pumpDoses;
+
+  return {
+    ok: true,
+    outputs: [
+      { label: 'Gallons per dose', display: gallonsPerDose.toFixed(1), unit: 'gal', primary: true },
+      { label: 'Gallons per day', display: gallonsPerDay.toFixed(1), unit: 'GPD', primary: true },
+    ],
+    inspection: {
+      heading: 'Pump Dosing / Pressure Rate Check',
+      rows: [
+        { label: 'Flow Rate', value: String(pumpGpm), unit: 'GPM' },
+        { label: 'On-Time', value: String(pumpOnTime), unit: 'min' },
+        { label: 'Doses/Day', value: String(pumpDoses) },
+        { label: 'Gallons per Dose', value: gallonsPerDose.toFixed(1), unit: 'gal' },
+        { label: 'Gallons per Day', value: gallonsPerDay.toFixed(1), unit: 'GPD' },
+      ],
+    },
+    notes: [
+      'Gallons per dose = GPM × on-time.',
+      'Gallons per day = gallons per dose × doses per day.',
+      'Dose and daily totals are rounded to one decimal place for the field record.',
+    ],
+  };
+}
+
 export function calculate(values = {}) {
   if (values.mode === 'squirt') return calculateSquirt(values);
   if (values.mode === 'runtime') return calculateRuntime(values);
+  if (values.mode === 'pump') return calculatePump(values);
   return {
     ok: false,
     tone: 'info',
-    message: 'Choose squirt height or run time and daily dose mode.',
+    message: 'Choose squirt height, run time or pump dosing mode.',
   };
 }

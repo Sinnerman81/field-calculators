@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { formatMmSs, outputValue } from '../modules/format.js';
-import { buildSummaryMarkdown } from '../modules/summary.js';
+import { buildInspectionMarkdown, buildSummaryMarkdown } from '../modules/summary.js';
 
 const result = {
   ok: true,
@@ -31,6 +31,40 @@ describe('format helpers', () => {
     assert.equal(outputValue({ value: 12345 }), '12,345');
     assert.equal(outputValue({ display: '2 h 15 min' }), '2 h 15 min');
     assert.equal(outputValue({}), '—');
+  });
+});
+
+describe('buildInspectionMarkdown', () => {
+  it('writes the fixed pump dosing inspection block', () => {
+    const markdown = buildInspectionMarkdown({
+      heading: 'Pump Dosing / Pressure Rate Check',
+      appVersion: 'v1.1.0-wastewater',
+      rows: [
+        { label: 'Flow Rate', value: '4.5', unit: 'GPM' },
+        { label: 'On-Time', value: '8', unit: 'min' },
+        { label: 'Doses/Day', value: '12' },
+        { label: 'Gallons per Dose', value: '36.0', unit: 'gal' },
+        { label: 'Gallons per Day', value: '432.0', unit: 'GPD' },
+      ],
+    });
+
+    assert.equal(
+      markdown,
+      [
+        '### Pump Dosing / Pressure Rate Check',
+        '- **App Version:** v1.1.0-wastewater',
+        '- **Flow Rate:** 4.5 GPM',
+        '- **On-Time:** 8 min',
+        '- **Doses/Day:** 12',
+        '- **Gallons per Dose:** 36.0 gal',
+        '- **Gallons per Day:** 432.0 GPD',
+        '',
+      ].join('\n'),
+    );
+  });
+
+  it('requires a heading', () => {
+    assert.throws(() => buildInspectionMarkdown({ rows: [] }), TypeError);
   });
 });
 

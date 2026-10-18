@@ -76,3 +76,19 @@ export function buildSummaryMarkdown({
   lines.push('', '---', `_${appName} — offline field calculators_`);
   return `${lines.join('\n')}\n`;
 }
+
+/**
+ * Compact inspection block for calculators that need a fixed field format.
+ * Rows are rendered verbatim so the module controls units and decimal places.
+ */
+export function buildInspectionMarkdown({ heading, appVersion = '', rows = [] }) {
+  if (!heading) throw new TypeError('An inspection log needs a heading.');
+
+  const lines = [`### ${heading}`];
+  if (appVersion) lines.push(`- **App Version:** ${appVersion}`);
+  for (const row of rows) {
+    const suffix = row.unit ? ` ${row.unit}` : '';
+    lines.push(`- **${row.label}:** ${row.value}${suffix}`);
+  }
+  return `${lines.join('\n')}\n`;
+}

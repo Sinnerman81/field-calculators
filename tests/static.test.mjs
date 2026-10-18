@@ -250,9 +250,12 @@ describe('App wiring', () => {
     assert.match(app, /registration\.waiting\.postMessage\('SKIP_WAITING'\)/);
     assert.match(app, /controllerchange/);
     assert.match(app, /appVersion: APP_VERSION/);
+    assert.match(app, /buildInspectionMarkdown/);
+    assert.match(app, /inspection && result\.inspection/);
 
     const summary = read('modules/summary.js');
     assert.match(summary, /appVersion = ''/);
+    assert.match(summary, /export function buildInspectionMarkdown/);
     assert.match(summary, /\*\*App Version:\*\*/);
   });
 
