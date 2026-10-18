@@ -18,6 +18,7 @@ const ASSETS = [
   './modules/tank-volumes.js',
   './modules/pressure-distribution.js',
   './modules/drip-oscar.js',
+  './modules/field-utilities.js',
   './icons/icon.svg',
   './icons/icon-192.png',
   './icons/icon-512.png',

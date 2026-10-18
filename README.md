@@ -21,42 +21,35 @@ npm run icons        # regenerate PNG icons from tools/make-icons.mjs
 
 ### Hydraulic Load Test (`hydraulic-load`)
 
-- Flow rate: `(test container gallons ÷ fill seconds) × 60`.
-- Total run time: `target volume ÷ flow rate`, shown as `mm:ss`.
-- Dosing rate: `flow rate × 1440`.
-- Container and fill-time steppers, target-volume presets (150/250/300/450 gal) and a custom target.
+- Bucket size (default 5 gal, ±1) and fill seconds (default 50, ±1).
+- Flow rate: `bucket gallons ÷ (fill seconds ÷ 60)`.
+- Target total defaults to 450 gal with 150/250/300/450 presets.
+- Run time is shown as decimal minutes **and** `mm:ss`.
 
 ### Tank Volume & GPI (`tank-volumes`)
 
-- **Rectangular:** `gallons = (L × W × depth) ÷ 231`; `GPI = (L × W) ÷ 231`.
-- **Cylindrical:** `gallons = (π × r² × depth) ÷ 231`; `GPI = (π × r²) ÷ 231`.
-- Both modes use inside dimensions in inches and report total liquid gallons and gallons per inch.
+Three modes with a top-level switcher:
+
+- **Rectangular** (length and width in ft, depth in in): `GPI = L × W × (1/12) × 7.48`; `gallons = L × W × (depth ÷ 12) × 7.48`.
+- **Cylindrical** (vertical, diameter in ft, depth in in): `GPI = (π × (D ÷ 2)² × 7.48) ÷ 12`; `gallons = π × (D ÷ 2)² × (depth ÷ 12) × 7.48`.
+- **Sand Filter** (all dimensions in ft plus gallons per dose): `total = W × L × D × 7.48`; `void GPI = (total ÷ (D × 12)) × 0.3`; `inches per dose = dose ÷ void GPI`.
 
 ### Pressure Distribution (`pressure-distribution`)
 
-- Orifice discharge: `Q = 11.79 × d² × √h`, where `d` is orifice diameter in inches and `h` is residual head in feet.
-- Total system flow: `orifice discharge × number of orifices`.
-- Lateral volume: pipe factor (gal/ft) × lateral length, with factors for 1", 1.25", 1.5" and 2" pipe.
-- Recommended minimum dose: `5 × lateral volume`.
-- Pump run time: `target dose ÷ total system flow`, shown as `mm:ss`.
+- **Squirt Height:** orifice presets 1/8", 5/32", 3/16" (default) and 1/4"; squirt height default 2 ft (±0.5); 90 orifices (±1). `GPM per orifice = 11.78 × d² × √(squirt × 0.433)`; `total = per-orifice × count`.
+- **Run Time & Daily Dose:** `gallons per dose = GPM × on-time`; `gallons per day = dose × doses per day`.
 
 ### Drip & OSCAR (`drip-oscar`)
 
-Two modes with a top-level switcher:
+- **Drip System:** Netafim (0.007) or Geo-Flow (0.01); linear feet default 721, on-time 8.6 min, 12 doses/day. `flow = feet × rate`; `dose = flow × on-time`; `daily = dose × doses`.
+- **Oscar Unit:** OS-50 (0.35) or OS-100 (0.70); 5 coils and 0.37 min on-time defaults. `flow = rate × coils`; `dose = flow × on-time`; `daily = dose × 360`.
 
-**Subsurface Septic Drip**
+### Field Utilities (`field-utilities`)
 
-- Emitter grid area, emitter count, zone flow, dose volume, areal loading and pump run time.
-- Warns above `0.60 gal/sq ft/day` and when zone flow is below `2.0 GPM`.
-- Emitter spacing 12/24 in, row spacing 12/18/24 in, emitter ratings 0.4/0.6/1.0 GPH.
-
-**OSCAR Sand-Lined Package**
-
-- OS-50: 0.35 GPM per coil, 3.5 gal minimum dose per coil, 50 GPD per coil capacity.
-- OS-100: 0.70 GPM per coil, 7.0 gal minimum dose per coil, 100 GPD per coil capacity.
-- Scheduled dose, manufacturer minimum system dose, active dose and pump run time.
-- Alerts when the manufacturer minimum raises the dose or the design exceeds the per-coil capacity.
-- Includes **Copy Inspection Log as Markdown** for field reporting.
+- **Double Check:** field GPM vs design GPM, difference and accuracy percentage.
+- **Time:** minutes + seconds to decimal minutes.
+- **Tape:** feet to inches.
+- **Fractions:** 1/8 through 7/8 as decimal inches.
 
 All results are estimates for field planning. Verify designs against the applicable local code, pump curve, soil assessment and manufacturer instructions.
 
@@ -69,13 +62,14 @@ styles.css            dark-first design system; light theme via [data-theme]
 app.js                hash router, persisted state, form/result engine,
                       mode tabs, steppers, presets, Markdown reporting
 modules/
-  registry.js         four ordered wastewater modules + categories
+  registry.js         five ordered field modules + categories
   format.js           pure number and duration helpers
   summary.js          pure Markdown summary builder (including alerts)
   hydraulic-load.js
   tank-volumes.js
   pressure-distribution.js
   drip-oscar.js
+  field-utilities.js
 manifest.json         PWA metadata, icons, shortcuts
 sw.js                 cache-first service worker (precaches every asset, names
                       the cache field-calc-${APP_VERSION})
@@ -109,7 +103,7 @@ Supported field types are `number`, `select`, `text` and `segmented`. Number fie
 
 `copySummaryAsMarkdown({ title, category, inputs, result })` builds a timestamped Markdown report with inputs, results, status, alerts and assumptions, copies it to the clipboard, and falls back to a manual-copy dialog if clipboard access is blocked. `window.FieldKit` exposes the helper and `buildSummaryMarkdown` for console use.
 
-The drip/OSCAR module sets `meta.inspectionLog`, which adds the **Copy Inspection Log as Markdown** action to its result panel. The active mode and only that mode’s inputs are included in the report, and every report carries an **App Version** line from `version.js`.
+Every module sets `meta.inspectionLog`, which adds the **Copy Inspection Log as Markdown** action to its result panel. The active mode and only that mode’s inputs are included in the report, and every report carries an **App Version** line from `version.js`.
 
 ### Build version and cache invalidation
 

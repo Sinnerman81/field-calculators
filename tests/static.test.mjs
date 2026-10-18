@@ -9,7 +9,13 @@ import { categories, getModule, modules } from '../modules/registry.js';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (path) => readFileSync(join(ROOT, path), 'utf8');
 
-const EXPECTED_IDS = ['hydraulic-load', 'tank-volumes', 'pressure-distribution', 'drip-oscar'];
+const EXPECTED_IDS = [
+  'hydraulic-load',
+  'tank-volumes',
+  'pressure-distribution',
+  'drip-oscar',
+  'field-utilities',
+];
 const OLD_MODULES = [
   'airflow',
   'battery-runtime',
@@ -25,12 +31,13 @@ const OLD_MODULES = [
 ];
 
 describe('wastewater calculator registry', () => {
-  it('exposes exactly the four dedicated modules', () => {
+  it('exposes exactly the five dedicated modules', () => {
     assert.deepEqual(
       modules.map((module) => module.meta.id),
       EXPECTED_IDS,
     );
     assert.equal(getModule('drip-oscar')?.meta.name, 'Drip & OSCAR');
+    assert.equal(getModule('field-utilities')?.meta.name, 'Field Utilities');
     assert.equal(getModule('torque'), undefined);
     for (const id of OLD_MODULES) {
       assert.equal(getModule(id), undefined, `${id} must be unregistered`);
@@ -100,7 +107,7 @@ describe('wastewater calculator registry', () => {
   });
 
   it('orders the wastewater categories', () => {
-    assert.deepEqual(categories, ['All', 'Hydraulics', 'Tanks', 'Distribution', 'Drip']);
+    assert.deepEqual(categories, ['All', 'Hydraulics', 'Tanks', 'Distribution', 'Drip', 'Utilities']);
   });
 });
 
@@ -232,7 +239,7 @@ describe('App wiring', () => {
     assert.match(app, /data-action="copy-inspection"/);
     assert.match(app, /Inspection Log/);
     assert.match(app, /export async function copySummaryAsMarkdown/);
-    assert.match(app, /step="any"/);
+    assert.match(app, /field\.step \?\? 'any'/);
     assert.match(app, /navigator\.serviceWorker\.register\('\.\/sw\.js',\s*\{\s*updateViaCache: 'none',?\s*\}\)/);
   });
 

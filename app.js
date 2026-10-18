@@ -286,8 +286,8 @@ function renderHome() {
           <span class="accent">without a signal.</span>
         </h1>
         <p class="home-lede">
-          Four dedicated tools for septic and wastewater work: hydraulic load testing,
-          tank volume, pressure distribution, and subsurface drip / OSCAR dosing.
+          Five dedicated tools for septic and wastewater work: hydraulic load testing,
+          tank volume, pressure distribution, drip / OSCAR dosing, and field utilities.
           Install once — everything stays on your device and available offline.
         </p>
       </div>
@@ -487,7 +487,7 @@ function fieldMarkup(field, savedValue) {
     `name="${esc(field.id)}"`,
     `value="${esc(initial)}"`,
     field.placeholder ? `placeholder="${esc(field.placeholder)}"` : '',
-    type === 'number' ? 'step="any" inputmode="decimal"' : '',
+    type === 'number' ? `step="${esc(field.step ?? 'any')}" inputmode="decimal"` : '',
     field.min != null ? `min="${esc(field.min)}"` : '',
     field.max != null ? `max="${esc(field.max)}"` : '',
     'autocomplete="off"',

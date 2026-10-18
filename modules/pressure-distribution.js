@@ -1,152 +1,166 @@
-import { formatMmSs } from './format.js';
-
 export const meta = {
   id: 'pressure-distribution',
   name: 'Pressure Distribution',
   category: 'Distribution',
   icon: 'grid',
-  description: 'Size orifice discharge, lateral volume, minimum dose and pump run time.',
-  keywords: ['orifice', 'lateral', 'distribution', 'dose', 'pump', 'gpm', 'septic'],
-  hint: 'Orifice discharge uses residual head at the orifice. Verify the design against the manufacturer’s lateral and pump limits.',
+  description: 'Check orifice squirt height and convert pump flow into daily dose volumes.',
+  keywords: ['orifice', 'squirt', 'distribution', 'dose', 'pump', 'gpm', 'septic'],
+  hint: 'Squirt height is measured at the orifice. Match the orifice size to the drilled distribution hole.',
+  inspectionLog: true,
 };
 
-const PIPE_FACTORS = {
-  '1': 0.045,
-  '1.25': 0.078,
-  '1.5': 0.106,
-  '2': 0.174,
-};
+export const modes = [
+  { id: 'squirt', label: 'Squirt Height' },
+  { id: 'runtime', label: 'Run Time & Daily Dose' },
+];
 
-const ORIFICE_DIAMETERS = [0.125, 0.15625, 0.1875];
+const ORIFICE_SIZES = [0.125, 0.156, 0.187, 0.25];
 
 export const fields = [
-  {
-    id: 'pipeDiameter',
-    label: 'Lateral pipe diameter',
-    type: 'select',
-    default: '1.25',
-    options: [
-      { value: '1', label: '1" — 0.045 gal/ft' },
-      { value: '1.25', label: '1.25" — 0.078 gal/ft' },
-      { value: '1.5', label: '1.5" — 0.106 gal/ft' },
-      { value: '2', label: '2" — 0.174 gal/ft' },
-    ],
-  },
-  {
-    id: 'lateralLength',
-    label: 'Total lateral length',
-    unit: 'ft',
-    type: 'number',
-    min: 0,
-    step: 'any',
-    placeholder: '100',
-  },
   {
     id: 'orificeSize',
     label: 'Orifice size',
     type: 'select',
-    default: '0.125',
+    default: '0.187',
     options: [
       { value: '0.125', label: '1/8" (0.125)' },
-      { value: '0.15625', label: '5/32" (0.15625)' },
-      { value: '0.1875', label: '3/16" (0.1875)' },
+      { value: '0.156', label: '5/32" (0.156)' },
+      { value: '0.187', label: '3/16" (0.187)' },
+      { value: '0.25', label: '1/4" (0.25)' },
     ],
+    mode: 'squirt',
   },
   {
-    id: 'orificeCount',
-    label: 'Number of orifices',
-    type: 'number',
-    min: 0,
-    step: 'any',
-    placeholder: '20',
-  },
-  {
-    id: 'residualHead',
-    label: 'Residual head',
+    id: 'squirtHeight',
+    label: 'Squirt height',
     unit: 'ft',
     type: 'number',
     min: 0,
     step: 'any',
     default: '2',
+    stepper: 0.5,
     placeholder: '2',
-    hint: 'Squirt height or residual pressure head',
+    mode: 'squirt',
   },
   {
-    id: 'targetDose',
-    label: 'Target dose volume',
-    unit: 'gal',
+    id: 'orificeCount',
+    label: 'Number of orifices',
+    type: 'number',
+    min: 1,
+    step: '1',
+    default: '90',
+    stepper: 1,
+    placeholder: '90',
+    mode: 'squirt',
+  },
+  {
+    id: 'runtimeGpm',
+    label: 'Flow rate',
+    unit: 'GPM',
     type: 'number',
     min: 0,
     step: 'any',
-    placeholder: '60',
+    default: '4.5',
+    stepper: 0.5,
+    placeholder: '4.5',
+    mode: 'runtime',
+  },
+  {
+    id: 'runtimeOnTime',
+    label: 'On-time',
+    unit: 'min',
+    type: 'number',
+    min: 0,
+    step: 'any',
+    default: '8',
+    stepper: 0.5,
+    placeholder: '8',
+    mode: 'runtime',
+  },
+  {
+    id: 'runtimeDoses',
+    label: 'Doses per day',
+    type: 'number',
+    min: 1,
+    step: '1',
+    default: '12',
+    stepper: 1,
+    placeholder: '12',
+    mode: 'runtime',
   },
 ];
 
-export function calculate(values = {}) {
-  const {
-    pipeDiameter,
-    lateralLength,
-    orificeSize,
-    orificeCount,
-    residualHead,
-    targetDose,
-  } = values;
+function calculateSquirt(values) {
+  const diameter = Number(values.orificeSize);
+  const squirt = values.squirtHeight;
+  const count = values.orificeCount;
 
-  const pipeFactor = PIPE_FACTORS[String(pipeDiameter)];
-  const diameter = Number(orificeSize);
-
-  if (!pipeFactor) {
-    return { ok: false, tone: 'error', message: 'Choose a valid lateral pipe diameter.' };
-  }
-  if (!Number.isFinite(lateralLength) || lateralLength < 0) {
-    return { ok: false, tone: 'error', message: 'Enter a total lateral length of zero or greater.' };
-  }
-  if (!ORIFICE_DIAMETERS.includes(diameter)) {
+  if (!ORIFICE_SIZES.includes(diameter)) {
     return { ok: false, tone: 'error', message: 'Choose a valid orifice size.' };
   }
-  if (!Number.isFinite(orificeCount) || !Number.isInteger(orificeCount) || orificeCount <= 0) {
-    return { ok: false, tone: 'error', message: 'Enter a whole number of orifices greater than zero.' };
+  if (!Number.isFinite(squirt) || squirt <= 0) {
+    return { ok: false, tone: 'error', message: 'Enter a squirt height greater than zero.' };
   }
-  if (!Number.isFinite(residualHead) || residualHead <= 0) {
-    return { ok: false, tone: 'error', message: 'Enter a residual head greater than zero.' };
-  }
-  if (!Number.isFinite(targetDose) || targetDose <= 0) {
-    return { ok: false, tone: 'error', message: 'Enter a target dose volume greater than zero.' };
+  if (!Number.isFinite(count) || !Number.isInteger(count) || count <= 0) {
+    return {
+      ok: false,
+      tone: 'error',
+      message: 'Enter a whole number of orifices greater than zero.',
+    };
   }
 
-  const orificeGpm = 11.79 * diameter ** 2 * Math.sqrt(residualHead);
-  const totalFlowGpm = orificeGpm * orificeCount;
-  const lateralVolume = pipeFactor * lateralLength;
-  const minimumDose = lateralVolume * 5;
-  const runTimeSeconds = (targetDose / totalFlowGpm) * 60;
-
-  const alerts = [];
-  if (targetDose < minimumDose) {
-    alerts.push({
-      level: 'warn',
-      label: 'Target dose is below the recommended 5× lateral pipe volume.',
-    });
-  }
+  const gpmPerOrifice = 11.78 * Math.pow(diameter, 2) * Math.sqrt(squirt * 0.433);
+  const totalGpm = gpmPerOrifice * count;
 
   return {
     ok: true,
     outputs: [
-      { label: 'Orifice discharge', value: orificeGpm, unit: 'GPM/orifice', primary: true },
-      { label: 'Total system flow', value: totalFlowGpm, unit: 'GPM', primary: true },
-      { label: 'Lateral pipe volume', value: lateralVolume, unit: 'gal' },
-      { label: 'Recommended minimum dose', value: minimumDose, unit: 'gal' },
-      {
-        label: 'Pump run time',
-        display: formatMmSs(runTimeSeconds),
-      },
-      { label: 'Pipe volume factor', value: pipeFactor, unit: 'gal/ft' },
+      { label: 'GPM per orifice', value: gpmPerOrifice, unit: 'GPM', primary: true },
+      { label: 'Total system GPM', value: totalGpm, unit: 'GPM', primary: true },
     ],
-    alerts,
     notes: [
-      'Orifice discharge: Q = 11.79 × d² × √h, with d in inches and h in feet of residual head.',
-      'Total system flow = orifice discharge × number of orifices.',
-      'Pump run time = target dose ÷ total system flow.',
-      'Recommended minimum dose is 5× the total lateral pipe volume.',
+      'GPM per orifice = 11.78 × orifice diameter² × √(squirt height × 0.433).',
+      'Total system GPM = GPM per orifice × number of orifices.',
+      'Squirt height is entered in feet and converted to pressure head in psi.',
     ],
+  };
+}
+
+function calculateRuntime(values) {
+  const { runtimeGpm, runtimeOnTime, runtimeDoses } = values;
+
+  if (!Number.isFinite(runtimeGpm) || runtimeGpm <= 0) {
+    return { ok: false, tone: 'error', message: 'Enter a flow rate greater than zero.' };
+  }
+  if (!Number.isFinite(runtimeOnTime) || runtimeOnTime <= 0) {
+    return { ok: false, tone: 'error', message: 'Enter an on-time greater than zero.' };
+  }
+  if (!Number.isFinite(runtimeDoses) || runtimeDoses <= 0) {
+    return { ok: false, tone: 'error', message: 'Enter doses per day greater than zero.' };
+  }
+
+  const gallonsPerDose = runtimeGpm * runtimeOnTime;
+  const gallonsPerDay = gallonsPerDose * runtimeDoses;
+
+  return {
+    ok: true,
+    outputs: [
+      { label: 'Gallons per dose', value: gallonsPerDose, unit: 'gal', primary: true },
+      { label: 'Gallons per day', value: gallonsPerDay, unit: 'GPD', primary: true },
+    ],
+    notes: [
+      'Gallons per dose = flow rate × on-time.',
+      'Gallons per day = gallons per dose × doses per day.',
+    ],
+  };
+}
+
+export function calculate(values = {}) {
+  if (values.mode === 'squirt') return calculateSquirt(values);
+  if (values.mode === 'runtime') return calculateRuntime(values);
+  return {
+    ok: false,
+    tone: 'info',
+    message: 'Choose squirt height or run time and daily dose mode.',
   };
 }
